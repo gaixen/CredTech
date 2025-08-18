@@ -1,0 +1,13 @@
+[project]
+name = "credtech"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "db-sqlite3>=0.0.1",
+    "dotenv>=0.9.9",
+    "feedparser>=6.0.11",
+    "finnhub-python>=2.4.24",
+    "websocket>=0.2.1",
+]

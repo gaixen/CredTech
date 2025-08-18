@@ -1,0 +1,5 @@
+feedparser
+db-sqlite3
+websocket
+finnhub-python
+dotenv

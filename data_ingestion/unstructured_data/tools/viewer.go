@@ -42,14 +42,14 @@ func main() {
 
 			file, err := os.Open(path)
 			if err != nil {
-				fmt.Printf("❌ Error opening %s: %v\n", path, err)
+				fmt.Printf("Error opening %s: %v\n", path, err)
 				return nil
 			}
 			defer file.Close()
 
 			var data UnstructuredData
 			if err := json.NewDecoder(file).Decode(&data); err != nil {
-				fmt.Printf("❌ Error decoding %s: %v\n", path, err)
+				fmt.Printf("Error decoding %s: %v\n", path, err)
 				return nil
 			}
 
@@ -61,7 +61,7 @@ func main() {
 				title = title[:77] + "..."
 			}
 
-			fmt.Printf("📰 %s | %s | %s\n",
+			fmt.Printf("%s | %s | %s\n",
 				strings.ToUpper(data.Source),
 				data.PublishedAt,
 				title)
@@ -75,7 +75,7 @@ func main() {
 		return
 	}
 
-	fmt.Println("\n📈 Summary:")
+	fmt.Println("\nSummary:")
 	fmt.Printf("Total files: %d\n", totalFiles)
 
 	if len(sourceCount) > 0 {

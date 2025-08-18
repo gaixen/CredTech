@@ -22,11 +22,11 @@ func main() {
 		}
 
 		if info.IsDir() && strings.Contains(path, string(os.PathSeparator)) && path != dataDir {
-			
+
 			sourceDir := path
 			sourceName := filepath.Base(path)
 
-			fmt.Printf("\n📂 Processing %s directory...\n", sourceName)
+			fmt.Printf("\nProcessing %s directory...\n", sourceName)
 
 			filesByID := make(map[string][]string)
 
@@ -50,13 +50,13 @@ func main() {
 				if len(filePaths) > 1 {
 					sort.Strings(filePaths)
 
-					fmt.Printf("  📄 Found %d duplicates for ID: %s\n", len(filePaths)-1, id)
+					fmt.Printf("  Found %d duplicates for ID: %s\n", len(filePaths)-1, id)
 
 					for i := 1; i < len(filePaths); i++ {
 						if err := os.Remove(filePaths[i]); err != nil {
 							fmt.Printf("    ❌ Error removing %s: %v\n", filePaths[i], err)
 						} else {
-							fmt.Printf("    🗑️  Removed: %s\n", filepath.Base(filePaths[i]))
+							fmt.Printf("      Removed: %s\n", filepath.Base(filePaths[i]))
 							totalRemoved++
 						}
 					}
@@ -68,11 +68,11 @@ func main() {
 	})
 
 	if err != nil {
-		fmt.Printf("❌ Error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	fmt.Printf("\n✅ Cleanup complete! Removed %d duplicate files.\n", totalRemoved)
+	fmt.Printf("\nCleanup complete! Removed %d duplicate files.\n", totalRemoved)
 
 	if totalRemoved > 0 {
 		fmt.Println("\n💡 Next time you run the data ingestion, duplicates will be prevented automatically.")
