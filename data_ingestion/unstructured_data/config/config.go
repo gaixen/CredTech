@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"fmt"
 	"time"
 )
 
@@ -169,3 +170,11 @@ func getEnv(key, defaultValue string) string {
 	}
 	return defaultValue
 }
+
+// debugging to check if module working or not
+// print the FINNHUB_API_KEY from .env using the getEnv function
+func debugPrintEnv() {
+	key := getEnv("FINNHUB_API_KEY", "")
+	fmt.Println(key)
+}
+
