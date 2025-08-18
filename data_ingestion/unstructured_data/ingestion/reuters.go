@@ -69,7 +69,6 @@ func (r *ReutersSource) Start(ctx context.Context) error {
 
 	log.Println("Starting Reuters RSS data source...")
 
-	// Start RSS feed ingestion
 	go r.ingestRSS(ctx)
 
 	return nil
@@ -89,7 +88,7 @@ func (r *ReutersSource) IsEnabled() bool {
 }
 
 func (r *ReutersSource) ingestRSS(ctx context.Context) {
-	// Initial fetch
+	
 	if err := r.fetchRSSFeed(ctx); err != nil {
 		log.Printf("Error in initial Reuters RSS fetch: %v", err)
 	}
@@ -146,7 +145,7 @@ func (r *ReutersSource) fetchRSSFeed(ctx context.Context) error {
 }
 
 func (r *ReutersSource) processRSSItem(ctx context.Context, item RSSItem) error {
-	// Create unique ID based on GUID or link
+	
 	identifier := item.GUID
 	if identifier == "" {
 		identifier = item.Link
@@ -155,17 +154,13 @@ func (r *ReutersSource) processRSSItem(ctx context.Context, item RSSItem) error 
 	hash := md5.Sum([]byte(identifier))
 	dataID := fmt.Sprintf("reuters-%x", hash[:8])
 
-	// Parse publication date
 	pubDate, err := r.parseRSSDate(item.PubDate)
 	if err != nil {
 		log.Printf("Failed to parse date %s: %v", item.PubDate, err)
 		pubDate = time.Now()
 	}
-
-	// Extract entities from title and description
 	entities := r.extractEntities(item.Title + " " + item.Description)
 
-	// Extract financial symbols and companies
 	symbols := r.extractFinancialSymbols(item.Title + " " + item.Description)
 
 	data := &models.UnstructuredData{
@@ -212,11 +207,8 @@ func (r *ReutersSource) parseRSSDate(dateStr string) (time.Time, error) {
 }
 
 func (r *ReutersSource) cleanDescription(desc string) string {
-	// Remove HTML tags and clean up description
 	desc = strings.ReplaceAll(desc, "<![CDATA[", "")
 	desc = strings.ReplaceAll(desc, "]]>", "")
-	
-	// Simple HTML tag removal
 	for strings.Contains(desc, "<") && strings.Contains(desc, ">") {
 		start := strings.Index(desc, "<")
 		end := strings.Index(desc[start:], ">")
@@ -241,21 +233,18 @@ func (r *ReutersSource) extractAuthor(item RSSItem) string {
 }
 
 func (r *ReutersSource) extractEntities(text string) []models.Entity {
-	// Simple entity extraction
 	var entities []models.Entity
 	
-	// Look for organizations (capitalized words)
 	words := strings.Fields(text)
 	for i, word := range words {
 		word = strings.Trim(word, ".,!?;:()")
 		if len(word) > 2 && strings.Title(word) == word {
-			// Check if it might be a company or organization
 			if r.isLikelyOrganization(word) {
 				entities = append(entities, models.Entity{
 					Name:       word,
 					Type:       "ORG",
 					Confidence: 0.7,
-					StartPos:   i * 6, // Approximate position
+					StartPos:   i * 6, 
 					EndPos:     i*6 + len(word),
 				})
 			}
@@ -266,7 +255,6 @@ func (r *ReutersSource) extractEntities(text string) []models.Entity {
 }
 
 func (r *ReutersSource) isLikelyOrganization(word string) bool {
-	// Simple heuristics for organization detection
 	orgSuffixes := []string{"Corp", "Inc", "Ltd", "LLC", "Group", "Company", "Bank", "Fund"}
 	
 	for _, suffix := range orgSuffixes {
@@ -274,8 +262,6 @@ func (r *ReutersSource) isLikelyOrganization(word string) bool {
 			return true
 		}
 	}
-	
-	// Length-based heuristic
 	return len(word) >= 4 && len(word) <= 20
 }
 
@@ -285,7 +271,6 @@ func (r *ReutersSource) extractFinancialSymbols(text string) []string {
 	
 	for _, word := range words {
 		word = strings.Trim(word, ".,!?;:()")
-		// Look for potential stock symbols (2-5 uppercase letters)
 		if len(word) >= 2 && len(word) <= 5 && strings.ToUpper(word) == word && strings.ToLower(word) != word {
 			symbols = append(symbols, word)
 		}
@@ -297,17 +282,14 @@ func (r *ReutersSource) extractFinancialSymbols(text string) []string {
 func (r *ReutersSource) generateTags(item RSSItem) []string {
 	tags := []string{"reuters", "financial_news", "rss"}
 	
-	// Add categories as tags
 	for _, category := range item.Category {
 		if category != "" {
 			tags = append(tags, strings.ToLower(strings.ReplaceAll(category, " ", "_")))
 		}
 	}
 	
-	// Add content-based tags
 	content := strings.ToLower(item.Title + " " + item.Description)
 	
-	// Market-related tags
 	if strings.Contains(content, "stock") || strings.Contains(content, "share") {
 		tags = append(tags, "stock_market")
 	}
@@ -328,7 +310,6 @@ func (r *ReutersSource) generateTags(item RSSItem) []string {
 		tags = append(tags, "monetary_policy")
 	}
 	
-	// Sentiment-based tags
 	negativeWords := []string{"decline", "fall", "drop", "loss", "crisis", "bankruptcy", "default"}
 	positiveWords := []string{"rise", "gain", "growth", "profit", "success", "breakthrough"}
 	

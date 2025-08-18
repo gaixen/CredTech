@@ -82,7 +82,7 @@ func (n *NewsAPISource) IsEnabled() bool {
 }
 
 func (n *NewsAPISource) ingestNews(ctx context.Context) {
-	// Initial fetch
+	
 	if err := n.fetchNews(ctx); err != nil {
 		log.Printf("Error in initial NewsAPI fetch: %v", err)
 	}
@@ -103,17 +103,14 @@ func (n *NewsAPISource) ingestNews(ctx context.Context) {
 }
 
 func (n *NewsAPISource) fetchNews(ctx context.Context) error {
-	// Fetch news for each keyword
+	
 	for _, keyword := range n.config.Keywords {
 		if err := n.fetchNewsForKeyword(ctx, keyword); err != nil {
 			log.Printf("Error fetching news for keyword '%s': %v", keyword, err)
 		}
 
-		// Rate limiting
 		time.Sleep(2 * time.Second)
 	}
-
-	// Fetch news from specific sources
 	if len(n.config.Sources) > 0 {
 		if err := n.fetchNewsFromSources(ctx); err != nil {
 			log.Printf("Error fetching news from sources: %v", err)
@@ -124,7 +121,7 @@ func (n *NewsAPISource) fetchNews(ctx context.Context) error {
 }
 
 func (n *NewsAPISource) fetchNewsForKeyword(ctx context.Context, keyword string) error {
-	// Build URL for keyword search
+	
 	params := url.Values{
 		"q":        {keyword},
 		"language": {"en"},
@@ -207,17 +204,17 @@ func (n *NewsAPISource) fetchNewsFromSources(ctx context.Context) error {
 }
 
 func (n *NewsAPISource) processNewsArticle(ctx context.Context, article NewsArticle, searchTerm string) error {
-	// Create unique ID
+	
 	hash := md5.Sum([]byte(article.URL + article.Title))
 	dataID := fmt.Sprintf("newsapi-%x", hash[:8])
 
-	// Extract entities
+	
 	entities := n.extractEntities(article.Title + " " + article.Description + " " + article.Content)
 
-	// Extract financial symbols
+	
 	symbols := n.extractFinancialSymbols(article.Title + " " + article.Description + " " + article.Content)
 
-	// Clean content
+	
 	content := article.Content
 	if content == "" {
 		content = article.Description
@@ -260,13 +257,11 @@ func (n *NewsAPISource) getAuthor(article NewsArticle) string {
 func (n *NewsAPISource) extractEntities(text string) []models.Entity {
 	var entities []models.Entity
 
-	// Simple entity extraction
 	words := strings.Fields(text)
 
 	for i, word := range words {
 		word = strings.Trim(word, ".,!?;:()")
 
-		// Look for organizations (capitalized words)
 		if len(word) > 2 && strings.Title(word) == word {
 			if n.isLikelyOrganization(word) {
 				entities = append(entities, models.Entity{
@@ -278,8 +273,6 @@ func (n *NewsAPISource) extractEntities(text string) []models.Entity {
 				})
 			}
 		}
-
-		// Look for stock symbols
 		if len(word) >= 2 && len(word) <= 5 && strings.ToUpper(word) == word {
 			entities = append(entities, models.Entity{
 				Name:       word,
@@ -299,7 +292,7 @@ func (n *NewsAPISource) extractEntities(text string) []models.Entity {
 			Type:       "MONEY",
 			Confidence: 0.8,
 			StartPos:   dollarIndex,
-			EndPos:     dollarIndex + 10, // Approximate
+			EndPos:     dollarIndex + 10, 
 		})
 	}
 
@@ -314,8 +307,6 @@ func (n *NewsAPISource) isLikelyOrganization(word string) bool {
 			return true
 		}
 	}
-
-	// Common company/organization names
 	commonOrgs := []string{"Apple", "Google", "Microsoft", "Amazon", "Tesla", "Meta", "Netflix", "Goldman", "Morgan", "JPMorgan", "Bank", "Federal", "Reserve", "Treasury"}
 
 	for _, org := range commonOrgs {
@@ -333,7 +324,6 @@ func (n *NewsAPISource) extractFinancialSymbols(text string) []string {
 
 	for _, word := range words {
 		word = strings.Trim(word, ".,!?;:()")
-		// Look for potential stock symbols
 		if len(word) >= 2 && len(word) <= 5 && strings.ToUpper(word) == word && strings.ToLower(word) != word {
 			symbols = append(symbols, word)
 		}
@@ -345,16 +335,12 @@ func (n *NewsAPISource) extractFinancialSymbols(text string) []string {
 func (n *NewsAPISource) generateTags(article NewsArticle, searchTerm string) []string {
 	tags := []string{"newsapi", "financial_news", searchTerm}
 
-	// Add source as tag
 	if article.Source.Name != "" {
 		sourceName := strings.ToLower(strings.ReplaceAll(article.Source.Name, " ", "_"))
 		tags = append(tags, sourceName)
 	}
-
-	// Analyze content for tags
 	content := strings.ToLower(article.Title + " " + article.Description + " " + article.Content)
 
-	// Financial market tags
 	if strings.Contains(content, "stock") || strings.Contains(content, "share") || strings.Contains(content, "equity") {
 		tags = append(tags, "stock_market")
 	}
@@ -390,8 +376,6 @@ func (n *NewsAPISource) generateTags(article NewsArticle, searchTerm string) []s
 	if strings.Contains(content, "unemployment") || strings.Contains(content, "jobs") || strings.Contains(content, "employment") {
 		tags = append(tags, "employment")
 	}
-
-	// Sentiment analysis
 	positiveWords := []string{"gain", "rise", "growth", "profit", "success", "beat", "exceed", "strong", "positive", "bull"}
 	negativeWords := []string{"loss", "decline", "fall", "crisis", "bankruptcy", "miss", "weak", "negative", "bear", "recession"}
 
@@ -415,8 +399,6 @@ func (n *NewsAPISource) generateTags(article NewsArticle, searchTerm string) []s
 	} else if negativeCount > positiveCount && negativeCount > 0 {
 		tags = append(tags, "negative_sentiment")
 	}
-
-	// Industry tags
 	if strings.Contains(content, "tech") || strings.Contains(content, "technology") || strings.Contains(content, "software") {
 		tags = append(tags, "technology")
 	}

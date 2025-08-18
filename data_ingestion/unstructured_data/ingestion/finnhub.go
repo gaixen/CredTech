@@ -68,10 +68,7 @@ func (f *FinnhubSource) Start(ctx context.Context) error {
 
 	log.Println("Starting Finnhub data source...")
 
-	// Start news ingestion
 	go f.ingestNews(ctx)
-
-	// Start WebSocket connection for real-time data
 	go f.startWebSocket(ctx)
 
 	return nil
@@ -112,7 +109,6 @@ func (f *FinnhubSource) ingestNews(ctx context.Context) {
 }
 
 func (f *FinnhubSource) fetchNews(ctx context.Context) error {
-	// Get news for today
 	from := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
 	to := time.Now().Format("2006-01-02")
 
@@ -260,7 +256,7 @@ func (f *FinnhubSource) startWebSocket(ctx context.Context) {
 		default:
 			if err := f.connectWebSocket(ctx); err != nil {
 				log.Printf("WebSocket connection error: %v", err)
-				time.Sleep(30 * time.Second) // Wait before reconnecting
+				time.Sleep(30 * time.Second) 
 			}
 		}
 	}
@@ -276,8 +272,6 @@ func (f *FinnhubSource) connectWebSocket(ctx context.Context) error {
 
 	f.conn = conn
 	defer conn.Close()
-
-	// Subscribe to symbols
 	for _, symbol := range f.config.Symbols {
 		msg := map[string]interface{}{
 			"type":   "subscribe",
@@ -290,7 +284,6 @@ func (f *FinnhubSource) connectWebSocket(ctx context.Context) error {
 
 	log.Printf("Connected to Finnhub WebSocket, subscribed to %d symbols", len(f.config.Symbols))
 
-	// Listen for messages
 	for {
 		select {
 		case <-ctx.Done():

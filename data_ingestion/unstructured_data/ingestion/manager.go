@@ -52,59 +52,41 @@ func NewManager(store storage.Storage, cfg *config.Config) *Manager {
 		cancel:  cancel,
 	}
 
-	// Initialize data sources
 	manager.initializeSources()
-	
-	// Initialize workers
 	manager.initializeWorkers()
 
 	return manager
 }
 
 func (m *Manager) initializeSources() {
-	// Finnhub source
 	if m.config.DataSources.Finnhub.Enabled {
 		finnhubSource := NewFinnhubSource(m.storage, m.config.DataSources.Finnhub)
 		m.sources["finnhub"] = finnhubSource
 	}
-
-	// Reuters RSS source
 	if m.config.DataSources.Reuters.Enabled {
 		reutersSource := NewReutersSource(m.storage, m.config.DataSources.Reuters)
 		m.sources["reuters"] = reutersSource
 	}
-
-	// Yahoo Finance source
 	if m.config.DataSources.Yahoo.Enabled {
 		yahooSource := NewYahooSource(m.storage, m.config.DataSources.Yahoo)
 		m.sources["yahoo"] = yahooSource
 	}
-
-	// NewsAPI source
 	if m.config.DataSources.NewsAPI.Enabled {
 		newsAPISource := NewNewsAPISource(m.storage, m.config.DataSources.NewsAPI)
 		m.sources["newsapi"] = newsAPISource
 	}
-
-	// MarketWatch source
 	if m.config.DataSources.MarketWatch.Enabled {
 		marketWatchSource := NewMarketWatchSource(m.storage, m.config.DataSources.MarketWatch)
 		m.sources["marketwatch"] = marketWatchSource
 	}
-
-	// Bloomberg RSS source
 	if m.config.DataSources.Bloomberg.Enabled {
 		bloombergSource := NewBloombergSource(m.storage, m.config.DataSources.Bloomberg)
 		m.sources["bloomberg"] = bloombergSource
 	}
-
-	// Kofin source
 	if m.config.DataSources.Kofin.Enabled {
 		kofinSource := NewKofinSource(m.storage, m.config.DataSources.Kofin)
 		m.sources["kofin"] = kofinSource
 	}
-
-	// Federal Reserve News source
 	if m.config.DataSources.FedNews.Enabled {
 		fedNewsSource := NewFedNewsSource(m.storage, m.config.DataSources.FedNews)
 		m.sources["fednews"] = fedNewsSource
@@ -128,13 +110,11 @@ func (m *Manager) initializeWorkers() {
 func (m *Manager) Start() error {
 	log.Println("Starting data ingestion manager...")
 
-	// Start workers
 	for _, worker := range m.workers {
 		m.wg.Add(1)
 		go worker.start()
 	}
 
-	// Start data sources
 	for name, source := range m.sources {
 		if source.IsEnabled() {
 			log.Printf("Starting data source: %s", name)
@@ -147,8 +127,6 @@ func (m *Manager) Start() error {
 			}(name, source)
 		}
 	}
-
-	// Start monitoring goroutine
 	m.wg.Add(1)
 	go m.monitor()
 
@@ -157,11 +135,8 @@ func (m *Manager) Start() error {
 
 func (m *Manager) Stop(ctx context.Context) error {
 	log.Println("Stopping data ingestion manager...")
-
-	// Cancel context to signal all goroutines to stop
 	m.cancel()
 
-	// Stop all data sources
 	for name, source := range m.sources {
 		if source.IsEnabled() {
 			log.Printf("Stopping data source: %s", name)
@@ -170,13 +145,9 @@ func (m *Manager) Stop(ctx context.Context) error {
 			}
 		}
 	}
-
-	// Stop workers
 	for _, worker := range m.workers {
 		worker.quit <- true
 	}
-
-	// Wait for all goroutines to finish
 	done := make(chan struct{})
 	go func() {
 		m.wg.Wait()
@@ -211,7 +182,6 @@ func (m *Manager) monitor() {
 }
 
 func (m *Manager) logStats() {
-	// Get data quality stats for each source
 	since := time.Now().Add(-24 * time.Hour)
 	
 	for name := range m.sources {
@@ -247,8 +217,6 @@ func (w *Worker) start() {
 
 func (w *Worker) processJob(job ProcessingJob) {
 	log.Printf("Worker %d processing job: %s for data %s", w.id, job.JobType, job.DataID)
-	
-	// TODO: Implement actual job processing based on job type
 	switch job.JobType {
 	case "sentiment_analysis":
 		w.processSentimentAnalysis(job)
@@ -264,25 +232,21 @@ func (w *Worker) processJob(job ProcessingJob) {
 }
 
 func (w *Worker) processSentimentAnalysis(job ProcessingJob) {
-	// TODO: Implement sentiment analysis using NLP libraries
 	log.Printf("Processing sentiment analysis for data %s", job.DataID)
-	time.Sleep(1 * time.Second) // Simulate processing time
+	time.Sleep(1 * time.Second)
 }
 
 func (w *Worker) processEntityExtraction(job ProcessingJob) {
-	// TODO: Implement named entity recognition
 	log.Printf("Processing entity extraction for data %s", job.DataID)
-	time.Sleep(1 * time.Second) // Simulate processing time
+	time.Sleep(1 * time.Second)
 }
 
 func (w *Worker) processSummarization(job ProcessingJob) {
-	// TODO: Implement text summarization
 	log.Printf("Processing summarization for data %s", job.DataID)
-	time.Sleep(1 * time.Second) // Simulate processing time
+	time.Sleep(1 * time.Second)
 }
 
 func (w *Worker) processQualityCheck(job ProcessingJob) {
-	// TODO: Implement data quality assessment
 	log.Printf("Processing quality check for data %s", job.DataID)
-	time.Sleep(500 * time.Millisecond) // Simulate processing time
+	time.Sleep(500 * time.Millisecond)
 }

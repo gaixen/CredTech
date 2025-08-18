@@ -131,7 +131,6 @@ func (m *MarketWatchSource) fetchRSS(ctx context.Context, rssURL string) error {
 	return nil
 }
 
-// Bloomberg Source
 type BloombergSource struct {
 	storage storage.Storage
 	config  config.BloombergConfig
@@ -238,8 +237,6 @@ func (b *BloombergSource) fetchRSS(ctx context.Context) error {
 
 	return nil
 }
-
-// Kofin Source
 type KofinSource struct {
 	storage storage.Storage
 	config  config.KofinConfig
@@ -291,13 +288,10 @@ func (k *KofinSource) ingestData(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			// Placeholder for Kofin data fetching
 			log.Println("Fetching Kofin data... (placeholder)")
 		}
 	}
 }
-
-// Federal Reserve News Source
 type FedNewsSource struct {
 	storage storage.Storage
 	config  config.FedNewsConfig
@@ -357,7 +351,6 @@ func (f *FedNewsSource) ingestData(ctx context.Context) {
 }
 
 func (f *FedNewsSource) fetchFedNews(ctx context.Context) error {
-	// Federal Reserve RSS feed
 	rssURL := "https://www.federalreserve.gov/feeds/press_all.xml"
 	
 	req, err := http.NewRequestWithContext(ctx, "GET", rssURL, nil)

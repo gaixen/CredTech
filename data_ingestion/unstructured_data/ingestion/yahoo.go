@@ -154,15 +154,12 @@ func (y *YahooSource) ingestFinancialData(ctx context.Context) {
 }
 
 func (y *YahooSource) fetchNews(ctx context.Context) error {
-	// Yahoo Finance news is typically accessed through their search API
-	// This is a simplified approach - in production, you'd use official APIs
 	
 	for _, symbol := range y.config.Symbols {
 		if err := y.fetchNewsForSymbol(ctx, symbol); err != nil {
 			log.Printf("Error fetching news for symbol %s: %v", symbol, err)
 		}
 		
-		// Rate limiting
 		time.Sleep(1 * time.Second)
 	}
 
@@ -170,7 +167,7 @@ func (y *YahooSource) fetchNews(ctx context.Context) error {
 }
 
 func (y *YahooSource) fetchNewsForSymbol(ctx context.Context, symbol string) error {
-	// Construct news URL - this is a simplified approach
+	
 	newsURL := fmt.Sprintf("https://query2.finance.yahoo.com/v1/finance/search?q=%s&lang=en-US&region=US&quotesCount=1&newsCount=10", 
 		url.QueryEscape(symbol))
 
@@ -190,14 +187,11 @@ func (y *YahooSource) fetchNewsForSymbol(ctx context.Context, symbol string) err
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
-
-	// Parse JSON response
 	var searchResponse map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&searchResponse); err != nil {
 		return fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	// Extract news items
 	if news, ok := searchResponse["news"].([]interface{}); ok {
 		for _, item := range news {
 			if newsItem, ok := item.(map[string]interface{}); ok {
@@ -217,14 +211,12 @@ func (y *YahooSource) processYahooNewsItem(ctx context.Context, item map[string]
 	publisher, _ := item["publisher"].(string)
 	
 	if title == "" || link == "" {
-		return nil // Skip incomplete items
+		return nil 
 	}
 
-	// Create unique ID
 	hash := md5.Sum([]byte(link + title))
 	dataID := fmt.Sprintf("yahoo-%x", hash[:8])
 
-	// Extract publish time
 	var publishTime time.Time
 	if providerTime, ok := item["providerPublishTime"].(float64); ok {
 		publishTime = time.Unix(int64(providerTime), 0)
@@ -232,10 +224,8 @@ func (y *YahooSource) processYahooNewsItem(ctx context.Context, item map[string]
 		publishTime = time.Now()
 	}
 
-	// Extract summary
 	summary, _ := item["summary"].(string)
 
-	// Extract related tickers
 	var relatedTickers []string
 	if tickers, ok := item["relatedTickers"].([]interface{}); ok {
 		for _, ticker := range tickers {
@@ -270,7 +260,7 @@ func (y *YahooSource) processYahooNewsItem(ctx context.Context, item map[string]
 }
 
 func (y *YahooSource) fetchFinancialData(ctx context.Context) error {
-	// Join symbols for batch request
+	
 	symbolsStr := strings.Join(y.config.Symbols, ",")
 	
 	quoteURL := fmt.Sprintf("https://query1.finance.yahoo.com/v7/finance/quote?symbols=%s", 
@@ -309,10 +299,8 @@ func (y *YahooSource) fetchFinancialData(ctx context.Context) error {
 }
 
 func (y *YahooSource) processFinancialData(ctx context.Context, quote YahooQuote) error {
-	// Generate unique ID for this data point
+	
 	dataID := uuid.New().String()
-
-	// Create content with key financial metrics
 	content := fmt.Sprintf(`Financial Data for %s (%s):
 		Price: $%.2f (%.2f%%)
 		Volume: %d
@@ -380,8 +368,6 @@ func (y *YahooSource) processFinancialData(ctx context.Context, quote YahooQuote
 
 func (y *YahooSource) extractEntities(text string) []models.Entity {
 	var entities []models.Entity
-	
-	// Extract stock symbols (uppercase patterns)
 	symbolRegex := regexp.MustCompile(`\b[A-Z]{1,5}\b`)
 	symbols := symbolRegex.FindAllString(text, -1)
 	
@@ -396,8 +382,6 @@ func (y *YahooSource) extractEntities(text string) []models.Entity {
 			})
 		}
 	}
-	
-	// Extract dollar amounts
 	moneyRegex := regexp.MustCompile(`\$[\d,]+(?:\.\d{2})?`)
 	amounts := moneyRegex.FindAllString(text, -1)
 	
@@ -419,7 +403,6 @@ func (y *YahooSource) generateTags(title, summary, symbol string) []string {
 	
 	content := strings.ToLower(title + " " + summary)
 	
-	// Add content-based tags
 	if strings.Contains(content, "earnings") {
 		tags = append(tags, "earnings")
 	}
@@ -436,7 +419,6 @@ func (y *YahooSource) generateTags(title, summary, symbol string) []string {
 		tags = append(tags, "analyst_rating")
 	}
 	
-	// Sentiment tags
 	if strings.Contains(content, "beat") || strings.Contains(content, "exceed") || strings.Contains(content, "strong") {
 		tags = append(tags, "positive_sentiment")
 	}
@@ -451,7 +433,6 @@ func (y *YahooSource) generateTags(title, summary, symbol string) []string {
 func (y *YahooSource) generateFinancialTags(quote YahooQuote) []string {
 	tags := []string{"yahoo_finance", "financial_data", "market_data", quote.Symbol}
 	
-	// Add tags based on financial metrics
 	if quote.RegularMarketChangePercent > 5 {
 		tags = append(tags, "significant_gain")
 	} else if quote.RegularMarketChangePercent < -5 {
@@ -462,14 +443,11 @@ func (y *YahooSource) generateFinancialTags(quote YahooQuote) []string {
 		tags = append(tags, "high_volume")
 	}
 	
-	// PE ratio based tags
 	if quote.TrailingPE > 0 && quote.TrailingPE < 15 {
 		tags = append(tags, "low_pe")
 	} else if quote.TrailingPE > 25 {
 		tags = append(tags, "high_pe")
 	}
-	
-	// Dividend yield tags
 	if quote.DividendYield > 0.03 { // > 3%
 		tags = append(tags, "dividend_stock")
 	}
