@@ -1,0 +1,31 @@
+{
+  "id": "yahoo-74f847f94049f08c",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Stocks Slightly Lower on Concern Over Progress to End Russian-Ukrainian War",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/3e803d40-e125-3448-9627-b8ea413d65d9/stocks-slightly-lower-on.html",
+  "author": "Barchart",
+  "published_at": "2025-08-18T19:29:58+05:30",
+  "ingested_at": "2025-08-18T22:34:51.7536779+05:30",
+  "metadata": {
+    "primary_symbol": "SPY",
+    "publisher": "Barchart",
+    "related_tickers": [
+      "^SPX",
+      "^DJI",
+      "^NDX",
+      "^IXIC",
+      "CL=F",
+      "WMT",
+      "TGT",
+      "HD"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "SPY"
+  ],
+  "entities": null
+}
