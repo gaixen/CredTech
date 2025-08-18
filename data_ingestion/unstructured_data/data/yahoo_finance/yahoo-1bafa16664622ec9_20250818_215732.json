@@ -1,0 +1,44 @@
+{
+  "id": "yahoo-1bafa16664622ec9",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Perplexity AI Makes $34.5 Billion Cash Bid For Google Chrome, Backed By Funds As Analyst Says Offer 'Vastly Undervalues' Asset",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/perplexity-ai-makes-34-5-154614440.html",
+  "author": "Benzinga",
+  "published_at": "2025-08-18T21:16:14+05:30",
+  "ingested_at": "2025-08-18T21:57:32.8682442+05:30",
+  "metadata": {
+    "primary_symbol": "GOOGL",
+    "publisher": "Benzinga",
+    "related_tickers": [
+      "NVDA",
+      "GOOG",
+      "SFTBF",
+      "UBER",
+      "EBAY"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "GOOGL",
+    "analyst_rating"
+  ],
+  "entities": [
+    {
+      "name": "AI",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 11,
+      "end_pos": 13
+    },
+    {
+      "name": "$34",
+      "type": "MONEY",
+      "confidence": 0.9,
+      "start_pos": 20,
+      "end_pos": 23
+    }
+  ]
+}

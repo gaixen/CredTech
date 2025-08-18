@@ -1,0 +1,24 @@
+{
+  "id": "yahoo-7720e3d8d2a2dbfb",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Richmond's Fed Chief Barkin: Job Market Holding Steady",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/richmonds-fed-chief-barkin-job-220232541.html",
+  "author": "GuruFocus.com",
+  "published_at": "2025-08-16T03:32:32+05:30",
+  "ingested_at": "2025-08-18T22:03:39.0342472+05:30",
+  "metadata": {
+    "primary_symbol": "QQQ",
+    "publisher": "GuruFocus.com",
+    "related_tickers": [
+      "QQQ"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "QQQ"
+  ],
+  "entities": null
+}

@@ -1,0 +1,29 @@
+{
+  "id": "yahoo-d23c20eb5a8e14dc",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Exchange-Traded Funds, Equity Futures Lower Pre-Bell Tuesday Ahead of Key Inflation Reading",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/exchange-traded-funds-equity-futures-122659936.html",
+  "author": "MT Newswires",
+  "published_at": "2025-08-12T17:56:59+05:30",
+  "ingested_at": "2025-08-18T22:03:40.2545116+05:30",
+  "metadata": {
+    "primary_symbol": "IWM",
+    "publisher": "MT Newswires",
+    "related_tickers": [
+      "SPY",
+      "QQQ",
+      "^SPX",
+      "^DJI",
+      "^IXIC",
+      "BTC-USD"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "IWM"
+  ],
+  "entities": null
+}

@@ -1,0 +1,24 @@
+{
+  "id": "yahoo-4e4e49265ea3e92c",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Google Boosts Stake in TeraWulf to 14%",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/google-boosts-stake-terawulf-14-154735322.html",
+  "author": "MT Newswires",
+  "published_at": "2025-08-18T21:17:35+05:30",
+  "ingested_at": "2025-08-18T21:59:32.8094271+05:30",
+  "metadata": {
+    "primary_symbol": "GOOGL",
+    "publisher": "MT Newswires",
+    "related_tickers": [
+      "GOOG"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "GOOGL"
+  ],
+  "entities": null
+}

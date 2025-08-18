@@ -1,0 +1,32 @@
+{
+  "id": "yahoo-7db172387b4bbfda",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "TalkMe Brings a Penguin to Life at Google I/O, Redefining AI Language Learning",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/talkme-brings-penguin-life-google-161900352.html",
+  "author": "GlobeNewswire",
+  "published_at": "2025-08-18T21:49:00+05:30",
+  "ingested_at": "2025-08-18T22:03:32.5701801+05:30",
+  "metadata": {
+    "primary_symbol": "GOOGL",
+    "publisher": "GlobeNewswire",
+    "related_tickers": [
+      "GOOG"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "GOOGL"
+  ],
+  "entities": [
+    {
+      "name": "AI",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 58,
+      "end_pos": 60
+    }
+  ]
+}

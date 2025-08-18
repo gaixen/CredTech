@@ -1,0 +1,19 @@
+{
+  "id": "bloomberg-8e7ada63bc287efe",
+  "source": "bloomberg",
+  "type": "news",
+  "title": "European Gas Hovers Near 2025 Low Before Zelenskiy-Trump Talks",
+  "content": "European natural gas prices hovered near a fresh 2025 low ahead of US President Donald Trump’s meeting with Ukraine’s Volodymyr Zelenskiy, who faces pressure to reach a peace deal with Russia that involves ceding territory.",
+  "url": "https://www.bloomberg.com/news/articles/2025-08-18/european-gas-falls-further-ahead-of-zelenskiy-trump-meeting",
+  "author": "Bloomberg",
+  "published_at": "2025-08-18T06:26:55Z",
+  "ingested_at": "2025-08-18T22:04:20.7623+05:30",
+  "metadata": {
+    "guid": "https://www.bloomberg.com/news/articles/2025-08-18/european-gas-falls-further-ahead-of-zelenskiy-trump-meeting"
+  },
+  "tags": [
+    "bloomberg",
+    "financial_news"
+  ],
+  "entities": null
+}

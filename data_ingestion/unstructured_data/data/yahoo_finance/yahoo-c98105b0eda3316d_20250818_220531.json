@@ -1,0 +1,33 @@
+{
+  "id": "yahoo-c98105b0eda3316d",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Here is What to Know Beyond Why Apple Inc. (AAPL) is a Trending Stock",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/know-beyond-why-apple-inc-130003332.html",
+  "author": "Zacks",
+  "published_at": "2025-08-18T18:30:03+05:30",
+  "ingested_at": "2025-08-18T22:05:31.5277005+05:30",
+  "metadata": {
+    "primary_symbol": "AAPL",
+    "publisher": "Zacks",
+    "related_tickers": [
+      "AAPL",
+      "^SPX"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "AAPL"
+  ],
+  "entities": [
+    {
+      "name": "AAPL",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 44,
+      "end_pos": 48
+    }
+  ]
+}

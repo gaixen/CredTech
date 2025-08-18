@@ -1,0 +1,19 @@
+{
+  "id": "marketwatch-1da6535cfb0f5f5a",
+  "source": "marketwatch",
+  "type": "news",
+  "title": "Amazon says it had best-ever Thanksgiving Holiday week with record sales and number of items sold",
+  "content": "",
+  "url": "https://www.marketwatch.com/story/amazon-says-it-had-best-ever-thanksgiving-holiday-week-with-record-sales-and-number-of-items-sold-786e0143?mod=mw_rss_marketpulse",
+  "author": "MarketWatch",
+  "published_at": "2024-12-03T14:05:00Z",
+  "ingested_at": "2025-08-18T22:00:21.6617891+05:30",
+  "metadata": {
+    "guid": "WP-MKTW-0003828131"
+  },
+  "tags": [
+    "marketwatch",
+    "financial_news"
+  ],
+  "entities": null
+}

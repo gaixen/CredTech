@@ -1,0 +1,30 @@
+{
+  "id": "yahoo-1d3a53d80c5da054",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Wall Street’s Strong Gains Will Be Tested Before Labor Day",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/ccbb0cf6-dbf8-3503-9dc3-9a9cab5b1ab7/wall-street%E2%80%99s-strong-gains.html",
+  "author": "Barrons.com",
+  "published_at": "2025-08-18T19:55:00+05:30",
+  "ingested_at": "2025-08-18T22:01:34.2843837+05:30",
+  "metadata": {
+    "primary_symbol": "MSFT",
+    "publisher": "Barrons.com",
+    "related_tickers": [
+      "MSFT",
+      "AMZN",
+      "NVDA",
+      "^GSPC",
+      "GOOG",
+      "^SPX"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "MSFT",
+    "positive_sentiment"
+  ],
+  "entities": null
+}

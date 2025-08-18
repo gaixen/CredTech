@@ -1,0 +1,43 @@
+{
+  "id": "yahoo-e3cb5937b21e48a7",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Why Cathie Wood's ARK Invest And Others Are Betting On Pony.AI",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/why-cathie-woods-ark-invest-161813691.html",
+  "author": "Benzinga",
+  "published_at": "2025-08-18T21:48:13+05:30",
+  "ingested_at": "2025-08-18T21:59:36.6527605+05:30",
+  "metadata": {
+    "primary_symbol": "TSLA",
+    "publisher": "Benzinga",
+    "related_tickers": [
+      "PONY",
+      "TSLA",
+      "BABA",
+      "TCEHY",
+      "3690.HK"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "TSLA"
+  ],
+  "entities": [
+    {
+      "name": "ARK",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 18,
+      "end_pos": 21
+    },
+    {
+      "name": "AI",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 60,
+      "end_pos": 62
+    }
+  ]
+}

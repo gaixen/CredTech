@@ -1,0 +1,31 @@
+{
+  "id": "yahoo-aaa0b79454d32bd3",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Exchange-Traded Funds, Equity Futures Lower Pre-Bell Monday Ahead of Jackson Hole Fed Meeting",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/exchange-traded-funds-equity-futures-124924935.html",
+  "author": "MT Newswires",
+  "published_at": "2025-08-18T18:19:24+05:30",
+  "ingested_at": "2025-08-18T22:03:39.0304743+05:30",
+  "metadata": {
+    "primary_symbol": "QQQ",
+    "publisher": "MT Newswires",
+    "related_tickers": [
+      "BTC-USD",
+      "SPY",
+      "QQQ",
+      "^SPX",
+      "^DJI",
+      "^IXIC",
+      "BITO",
+      "XLK"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "QQQ"
+  ],
+  "entities": null
+}

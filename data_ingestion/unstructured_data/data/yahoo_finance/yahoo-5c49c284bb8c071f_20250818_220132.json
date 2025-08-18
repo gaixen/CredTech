@@ -1,0 +1,27 @@
+{
+  "id": "yahoo-5c49c284bb8c071f",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Google Signs Nuclear Power Deal. What It Means for the Stocks.",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/9c23aad5-7366-3da1-840b-455c5e3a7c46/google-signs-nuclear-power.html",
+  "author": "Barrons.com",
+  "published_at": "2025-08-18T20:16:00+05:30",
+  "ingested_at": "2025-08-18T22:01:32.9524063+05:30",
+  "metadata": {
+    "primary_symbol": "GOOGL",
+    "publisher": "Barrons.com",
+    "related_tickers": [
+      "BWXT",
+      "SMR",
+      "OKLO",
+      "GOOG"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "GOOGL"
+  ],
+  "entities": null
+}

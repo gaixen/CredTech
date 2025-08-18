@@ -1,0 +1,39 @@
+{
+  "id": "yahoo-52134cdcdda8a0c9",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Cable's MSNBC will change its name later this year as part of corporate divorce from NBC",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/d71fe3af-c397-352d-8ed2-613069a20fc2/cable%27s-msnbc-will-change-its.html",
+  "author": "Associated Press Finance",
+  "published_at": "2025-08-18T18:44:22+05:30",
+  "ingested_at": "2025-08-18T22:05:34.1557402+05:30",
+  "metadata": {
+    "primary_symbol": "MSFT",
+    "publisher": "Associated Press Finance",
+    "related_tickers": [
+      "MSFT"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "MSFT"
+  ],
+  "entities": [
+    {
+      "name": "MSNBC",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 8,
+      "end_pos": 13
+    },
+    {
+      "name": "NBC",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 10,
+      "end_pos": 13
+    }
+  ]
+}

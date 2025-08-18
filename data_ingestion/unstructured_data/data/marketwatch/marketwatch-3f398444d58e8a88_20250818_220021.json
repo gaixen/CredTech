@@ -1,0 +1,19 @@
+{
+  "id": "marketwatch-3f398444d58e8a88",
+  "source": "marketwatch",
+  "type": "news",
+  "title": "European stocks open lower after weak Wall Street finish, computer outages",
+  "content": "",
+  "url": "https://www.marketwatch.com/story/european-stocks-open-lower-after-weak-wall-street-finish-computer-outages-a57c53a7?mod=mw_rss_marketpulse",
+  "author": "MarketWatch",
+  "published_at": "2024-07-19T07:08:00Z",
+  "ingested_at": "2025-08-18T22:00:21.7465628+05:30",
+  "metadata": {
+    "guid": "WP-MKTW-0003470443"
+  },
+  "tags": [
+    "marketwatch",
+    "financial_news"
+  ],
+  "entities": null
+}

@@ -1,0 +1,34 @@
+{
+  "id": "yahoo-abf17c3f830d6ea9",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "IBM Gains 23% in a Year: Should You Bet on the Stock Now?",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/ibm-gains-23-bet-stock-143100611.html",
+  "author": "Zacks",
+  "published_at": "2025-08-18T20:01:00+05:30",
+  "ingested_at": "2025-08-18T21:57:35.5453519+05:30",
+  "metadata": {
+    "primary_symbol": "AMZN",
+    "publisher": "Zacks",
+    "related_tickers": [
+      "IBM",
+      "MSFT",
+      "AMZN"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "AMZN"
+  ],
+  "entities": [
+    {
+      "name": "IBM",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 0,
+      "end_pos": 3
+    }
+  ]
+}

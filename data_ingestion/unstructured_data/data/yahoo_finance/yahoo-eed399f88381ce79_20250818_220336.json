@@ -1,0 +1,26 @@
+{
+  "id": "yahoo-eed399f88381ce79",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Tesla says Model Y L is 'coming soon'",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/tesla-says-model-y-l-123326506.html",
+  "author": "Reuters",
+  "published_at": "2025-08-18T18:03:26+05:30",
+  "ingested_at": "2025-08-18T22:03:36.5735117+05:30",
+  "metadata": {
+    "primary_symbol": "TSLA",
+    "publisher": "Reuters",
+    "related_tickers": [
+      "TSLA",
+      "WB",
+      "XIACF"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "TSLA"
+  ],
+  "entities": null
+}

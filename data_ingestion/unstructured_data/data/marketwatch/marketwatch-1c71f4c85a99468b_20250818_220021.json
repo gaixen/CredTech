@@ -1,0 +1,19 @@
+{
+  "id": "marketwatch-1c71f4c85a99468b",
+  "source": "marketwatch",
+  "type": "news",
+  "title": "Trump asks Supreme Court to pause TikTok ban",
+  "content": "",
+  "url": "https://www.marketwatch.com/story/trump-asks-supreme-court-to-pause-tiktok-ban-2b724ae6?mod=mw_rss_marketpulse",
+  "author": "MarketWatch",
+  "published_at": "2024-12-28T00:32:00Z",
+  "ingested_at": "2025-08-18T22:00:21.6605614+05:30",
+  "metadata": {
+    "guid": "WP-MKTW-0003881979"
+  },
+  "tags": [
+    "marketwatch",
+    "financial_news"
+  ],
+  "entities": null
+}

@@ -1,0 +1,34 @@
+{
+  "id": "yahoo-410315c37125f250",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Microsoft Likely to Maintain Strong Momentum in Cloud, AI Growth, Truist Says",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/microsoft-likely-maintain-strong-momentum-142654077.html",
+  "author": "MT Newswires",
+  "published_at": "2025-08-18T19:56:54+05:30",
+  "ingested_at": "2025-08-18T21:59:34.1328375+05:30",
+  "metadata": {
+    "primary_symbol": "MSFT",
+    "publisher": "MT Newswires",
+    "related_tickers": [
+      "MSFT",
+      "TFC"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "MSFT",
+    "positive_sentiment"
+  ],
+  "entities": [
+    {
+      "name": "AI",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 55,
+      "end_pos": 57
+    }
+  ]
+}

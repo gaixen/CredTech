@@ -1,0 +1,35 @@
+{
+  "id": "yahoo-6e3574767cabf815",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Stocks Are Mixed After Hot PPI Report",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/bffafd45-3da3-32b0-9676-f725b107e555/stocks-are-mixed-after-hot.html",
+  "author": "Barchart",
+  "published_at": "2025-08-14T21:20:55+05:30",
+  "ingested_at": "2025-08-18T21:59:39.3130809+05:30",
+  "metadata": {
+    "primary_symbol": "QQQ",
+    "publisher": "Barchart",
+    "related_tickers": [
+      "^SPX",
+      "^DJI",
+      "^NDX",
+      "^IXIC"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "QQQ"
+  ],
+  "entities": [
+    {
+      "name": "PPI",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 27,
+      "end_pos": 30
+    }
+  ]
+}

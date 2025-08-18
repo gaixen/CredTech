@@ -1,0 +1,19 @@
+{
+  "id": "bloomberg-8e0ecc43c243f1a2",
+  "source": "bloomberg",
+  "type": "news",
+  "title": "UK 30-Year Inflation-Linked Yields Hit Highest Since 1998",
+  "content": "The yield on long-dated inflation-linked bonds surpassed the highs seen during the gilt-market meltdown three years ago, the latest unwanted market milestone for the UK government.",
+  "url": "https://www.bloomberg.com/news/articles/2025-08-18/uk-30-year-inflation-linked-yields-hit-highest-since-1998-meh7xg6f",
+  "author": "Bloomberg",
+  "published_at": "2025-08-18T14:36:44Z",
+  "ingested_at": "2025-08-18T22:01:20.7922854+05:30",
+  "metadata": {
+    "guid": "https://www.bloomberg.com/news/articles/2025-08-18/uk-30-year-inflation-linked-yields-hit-highest-since-1998-meh7xg6f"
+  },
+  "tags": [
+    "bloomberg",
+    "financial_news"
+  ],
+  "entities": null
+}

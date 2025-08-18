@@ -1,0 +1,59 @@
+{
+  "id": "yahoo-d3c77ca303139dd6",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Zacks Investment Ideas feature highlights: IWM, ETHA, IBIT and XXRP",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/zacks-investment-ideas-feature-highlights-124000065.html",
+  "author": "Zacks",
+  "published_at": "2025-08-14T18:10:00+05:30",
+  "ingested_at": "2025-08-18T22:03:40.2444149+05:30",
+  "metadata": {
+    "primary_symbol": "IWM",
+    "publisher": "Zacks",
+    "related_tickers": [
+      "IWM",
+      "XXRP",
+      "ETHA",
+      "IBIT",
+      "ETH-USD",
+      "XRP-USD",
+      "^IXIC"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "IWM"
+  ],
+  "entities": [
+    {
+      "name": "IWM",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 43,
+      "end_pos": 46
+    },
+    {
+      "name": "ETHA",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 48,
+      "end_pos": 52
+    },
+    {
+      "name": "IBIT",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 54,
+      "end_pos": 58
+    },
+    {
+      "name": "XXRP",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 63,
+      "end_pos": 67
+    }
+  ]
+}

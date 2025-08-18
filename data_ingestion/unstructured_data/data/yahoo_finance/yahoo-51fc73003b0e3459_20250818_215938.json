@@ -1,0 +1,27 @@
+{
+  "id": "yahoo-51fc73003b0e3459",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "6 Battered S\u0026P 500 Stocks Blow Away Nvidia In 'Healthy Rotation'",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/0285d7b5-8cf8-37de-a25d-6c8366b881c0/6-battered-s%26p-500-stocks.html",
+  "author": "Investor's Business Daily",
+  "published_at": "2025-08-18T17:30:34+05:30",
+  "ingested_at": "2025-08-18T21:59:38.0215166+05:30",
+  "metadata": {
+    "primary_symbol": "SPY",
+    "publisher": "Investor's Business Daily",
+    "related_tickers": [
+      "^SPX",
+      "NVDA",
+      "UNH",
+      "CNC"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "SPY"
+  ],
+  "entities": null
+}

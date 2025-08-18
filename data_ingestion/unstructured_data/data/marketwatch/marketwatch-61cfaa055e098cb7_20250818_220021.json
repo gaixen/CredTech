@@ -1,0 +1,19 @@
+{
+  "id": "marketwatch-61cfaa055e098cb7",
+  "source": "marketwatch",
+  "type": "news",
+  "title": "Consumer credit growth soars in December",
+  "content": "",
+  "url": "https://www.marketwatch.com/story/consumer-credit-growth-soars-in-december-d405d18e?mod=mw_rss_marketpulse",
+  "author": "MarketWatch",
+  "published_at": "2025-02-07T20:26:00Z",
+  "ingested_at": "2025-08-18T22:00:21.6523753+05:30",
+  "metadata": {
+    "guid": "WP-MKTW-0003973830"
+  },
+  "tags": [
+    "marketwatch",
+    "financial_news"
+  ],
+  "entities": null
+}

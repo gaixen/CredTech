@@ -1,0 +1,26 @@
+{
+  "id": "yahoo-16e0c5986f99b4c5",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Crypto stock jumps after Google increases stake to 14%",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/ccacf305-e378-3e9d-8257-0bb2ec5787ab/crypto-stock-jumps-after.html",
+  "author": "TheStreet",
+  "published_at": "2025-08-18T21:45:12+05:30",
+  "ingested_at": "2025-08-18T22:05:32.8134581+05:30",
+  "metadata": {
+    "primary_symbol": "GOOGL",
+    "publisher": "TheStreet",
+    "related_tickers": [
+      "WULF",
+      "GOOG",
+      "BTC-USD"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "GOOGL"
+  ],
+  "entities": null
+}

@@ -1,0 +1,19 @@
+{
+  "id": "marketwatch-b6aea22009b17d4d",
+  "source": "marketwatch",
+  "type": "news",
+  "title": "Jobless claims stay low in latest week",
+  "content": "",
+  "url": "https://www.marketwatch.com/story/jobless-claims-stay-low-in-latest-week-27b4b50b?mod=mw_rss_marketpulse",
+  "author": "MarketWatch",
+  "published_at": "2025-02-13T13:33:00Z",
+  "ingested_at": "2025-08-18T22:05:22.0406688+05:30",
+  "metadata": {
+    "guid": "WP-MKTW-0003986044"
+  },
+  "tags": [
+    "marketwatch",
+    "financial_news"
+  ],
+  "entities": null
+}

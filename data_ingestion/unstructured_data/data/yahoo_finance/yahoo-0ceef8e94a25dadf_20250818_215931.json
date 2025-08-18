@@ -1,0 +1,28 @@
+{
+  "id": "yahoo-0ceef8e94a25dadf",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Buffett's Shot in the Arm Sends UnitedHealth Soaring Against the Odds",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/buffetts-shot-arm-sends-unitedhealth-132200528.html",
+  "author": "Zacks",
+  "published_at": "2025-08-18T18:52:00+05:30",
+  "ingested_at": "2025-08-18T21:59:31.4775826+05:30",
+  "metadata": {
+    "primary_symbol": "AAPL",
+    "publisher": "Zacks",
+    "related_tickers": [
+      "BRK-B",
+      "CNC",
+      "ELV",
+      "UNH",
+      "AAPL"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "AAPL"
+  ],
+  "entities": null
+}

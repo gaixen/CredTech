@@ -1,0 +1,32 @@
+{
+  "id": "yahoo-2f77a5bec9cc31d4",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "The boss is back",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/boss-back-120003842.html",
+  "author": "Financial Times",
+  "published_at": "2025-08-18T17:30:03+05:30",
+  "ingested_at": "2025-08-18T21:55:20.3923772+05:30",
+  "metadata": {
+    "primary_symbol": "AAPL",
+    "publisher": "Financial Times",
+    "related_tickers": [
+      "META",
+      "GOOG",
+      "AMZN",
+      "MSFT",
+      "T",
+      "BLK",
+      "UPS",
+      "CRM",
+      "AAPL"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "AAPL"
+  ],
+  "entities": null
+}

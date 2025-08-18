@@ -1,0 +1,24 @@
+{
+  "id": "yahoo-44f3d081bde58942",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Amazon Expands Same-Day Grocery Delivery to 1,000 Cities",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/amazon-expands-same-day-grocery-133344037.html",
+  "author": "GuruFocus.com",
+  "published_at": "2025-08-18T19:03:44+05:30",
+  "ingested_at": "2025-08-18T22:03:35.2703879+05:30",
+  "metadata": {
+    "primary_symbol": "AMZN",
+    "publisher": "GuruFocus.com",
+    "related_tickers": [
+      "AMZN"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "AMZN"
+  ],
+  "entities": null
+}

@@ -1,0 +1,32 @@
+{
+  "id": "yahoo-00b990a246d970d1",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Samsung Steals U.S. Market Share from Apple as Foldables and AI Take Center Stage",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/samsung-steals-u-market-share-121911377.html",
+  "author": "GuruFocus.com",
+  "published_at": "2025-08-18T17:49:11+05:30",
+  "ingested_at": "2025-08-18T22:05:31.5370171+05:30",
+  "metadata": {
+    "primary_symbol": "AAPL",
+    "publisher": "GuruFocus.com",
+    "related_tickers": [
+      "AAPL"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "AAPL"
+  ],
+  "entities": [
+    {
+      "name": "AI",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 61,
+      "end_pos": 63
+    }
+  ]
+}

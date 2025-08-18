@@ -1,0 +1,28 @@
+{
+  "id": "yahoo-8e437759a1f5a929",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Tesla Stock Recharges – Flashing These Three Telltale Clues",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/3108cdc9-c171-308a-acef-21c9946eecd9/tesla-stock-recharges-%E2%80%93.html",
+  "author": "Investor's Business Daily",
+  "published_at": "2025-08-18T21:24:17+05:30",
+  "ingested_at": "2025-08-18T22:03:36.5640287+05:30",
+  "metadata": {
+    "primary_symbol": "TSLA",
+    "publisher": "Investor's Business Daily",
+    "related_tickers": [
+      "TSLA",
+      "NVDA",
+      "F",
+      "GE",
+      "RIVN"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "TSLA"
+  ],
+  "entities": null
+}

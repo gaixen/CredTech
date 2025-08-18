@@ -1,0 +1,27 @@
+{
+  "id": "yahoo-71a81020207f9a5b",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Think You Missed the Boat? Why These ETFs Are Poised for a Run.",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/10f6961e-b38e-3c9a-a2f4-afdef9a3efa3/think-you-missed-the-boat%3F.html",
+  "author": "Motley Fool",
+  "published_at": "2025-08-18T13:33:00+05:30",
+  "ingested_at": "2025-08-18T21:57:39.5620176+05:30",
+  "metadata": {
+    "primary_symbol": "QQQ",
+    "publisher": "Motley Fool",
+    "related_tickers": [
+      "QQQ",
+      "VUG",
+      "VOO"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "QQQ",
+    "negative_sentiment"
+  ],
+  "entities": null
+}

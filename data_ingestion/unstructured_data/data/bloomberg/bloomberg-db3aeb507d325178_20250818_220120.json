@@ -1,0 +1,19 @@
+{
+  "id": "bloomberg-db3aeb507d325178",
+  "source": "bloomberg",
+  "type": "news",
+  "title": "Treasuries Extend Losses Ahead of Key Jackson Hole Powell Speech",
+  "content": "US Treasuries slipped for a third day as traders shift focus to a highly anticipated speech this week from Jerome Powell for signals on where the Federal Reserve will take interest rates.",
+  "url": "https://www.bloomberg.com/news/articles/2025-08-18/treasuries-extend-losses-ahead-of-key-jackson-hole-powell-speech",
+  "author": "Bloomberg",
+  "published_at": "2025-08-18T16:12:55Z",
+  "ingested_at": "2025-08-18T22:01:20.7721568+05:30",
+  "metadata": {
+    "guid": "https://www.bloomberg.com/news/articles/2025-08-18/treasuries-extend-losses-ahead-of-key-jackson-hole-powell-speech"
+  },
+  "tags": [
+    "bloomberg",
+    "financial_news"
+  ],
+  "entities": null
+}

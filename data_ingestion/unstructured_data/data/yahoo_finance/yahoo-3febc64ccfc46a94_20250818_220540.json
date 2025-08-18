@@ -1,0 +1,31 @@
+{
+  "id": "yahoo-3febc64ccfc46a94",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "5 ETFs to Benefit if Fed Cuts Rate in September",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/5-etfs-benefit-fed-cuts-153000267.html",
+  "author": "Zacks",
+  "published_at": "2025-08-11T21:00:00+05:30",
+  "ingested_at": "2025-08-18T22:05:40.7654699+05:30",
+  "metadata": {
+    "primary_symbol": "IWM",
+    "publisher": "Zacks",
+    "related_tickers": [
+      "XLU",
+      "IWM",
+      "XLY",
+      "VGSIX",
+      "VGSLX",
+      "VGSNX",
+      "VNQ",
+      "GLD"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "IWM"
+  ],
+  "entities": null
+}

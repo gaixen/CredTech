@@ -1,0 +1,19 @@
+{
+  "id": "bloomberg-4c209615231d78fb",
+  "source": "bloomberg",
+  "type": "news",
+  "title": "Oil Fluctuates as Focus Shifts to Zelenskiy Meeting With Trump",
+  "content": "Oil swung between gains and losses as traders awaited a meeting between Presidents Donald Trump and Volodymyr Zelenskiy, with the Ukrainian leader facing US pressure to agree to ceding territory to Russia.",
+  "url": "https://www.bloomberg.com/news/articles/2025-08-18/oil-fluctuates-as-focus-shifts-to-zelenskiy-meeting-with-trump",
+  "author": "Bloomberg",
+  "published_at": "2025-08-18T15:01:24Z",
+  "ingested_at": "2025-08-18T22:04:20.8088138+05:30",
+  "metadata": {
+    "guid": "https://www.bloomberg.com/news/articles/2025-08-18/oil-fluctuates-as-focus-shifts-to-zelenskiy-meeting-with-trump"
+  },
+  "tags": [
+    "bloomberg",
+    "financial_news"
+  ],
+  "entities": null
+}

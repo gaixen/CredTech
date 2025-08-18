@@ -1,0 +1,33 @@
+{
+  "id": "yahoo-4354352ef7f9ec42",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Microsoft stock target lifted at Truist on cloud and AI growth drivers",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/microsoft-stock-target-lifted-truist-140630369.html",
+  "author": "Investing.com",
+  "published_at": "2025-08-18T19:36:30+05:30",
+  "ingested_at": "2025-08-18T21:59:34.1361258+05:30",
+  "metadata": {
+    "primary_symbol": "MSFT",
+    "publisher": "Investing.com",
+    "related_tickers": [
+      "MSFT",
+      "TFC"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "MSFT"
+  ],
+  "entities": [
+    {
+      "name": "AI",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 53,
+      "end_pos": 55
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "yahoo-9d90062f6c941b23",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Pony.ai Attracts Premium Capital as Funds Chase the Next Tech Transformation",
+  "content": "",
+  "url": "https://finance.yahoo.com/news/pony-ai-attracts-premium-capital-135300927.html",
+  "author": "PR Newswire",
+  "published_at": "2025-08-18T19:23:00+05:30",
+  "ingested_at": "2025-08-18T22:03:36.5690446+05:30",
+  "metadata": {
+    "primary_symbol": "TSLA",
+    "publisher": "PR Newswire",
+    "related_tickers": [
+      "PONY",
+      "TSLA",
+      "TCEHY",
+      "BABA",
+      "3690.HK"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "TSLA"
+  ],
+  "entities": null
+}

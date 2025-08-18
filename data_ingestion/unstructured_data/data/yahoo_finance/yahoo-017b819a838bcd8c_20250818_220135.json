@@ -1,0 +1,40 @@
+{
+  "id": "yahoo-017b819a838bcd8c",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "These AI Stocks Face 'Show Me' Moment: Palantir, CoreWeave, Nvidia, Snowflake",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/684c930d-1475-3adc-b013-ae604c056ebc/these-ai-stocks-face-%27show.html",
+  "author": "Investor's Business Daily",
+  "published_at": "2025-08-18T17:45:48+05:30",
+  "ingested_at": "2025-08-18T22:01:35.6457727+05:30",
+  "metadata": {
+    "primary_symbol": "AMZN",
+    "publisher": "Investor's Business Daily",
+    "related_tickers": [
+      "NVDA",
+      "PLTR",
+      "CRWV",
+      "META",
+      "GOOG",
+      "SNOW",
+      "NET",
+      "AMZN",
+      "MSFT"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "AMZN"
+  ],
+  "entities": [
+    {
+      "name": "AI",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 6,
+      "end_pos": 8
+    }
+  ]
+}

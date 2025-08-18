@@ -1,0 +1,24 @@
+{
+  "id": "yahoo-7574a5920b598ede",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Bank stocks may struggle amid concerning sign",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/b2fe0ff8-8a37-306e-a106-dd98f1ac2f41/bank-stocks-may-struggle-amid.html",
+  "author": "TheStreet",
+  "published_at": "2025-08-16T03:47:00+05:30",
+  "ingested_at": "2025-08-18T21:57:38.2221412+05:30",
+  "metadata": {
+    "primary_symbol": "SPY",
+    "publisher": "TheStreet",
+    "related_tickers": [
+      "SPY"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "SPY"
+  ],
+  "entities": null
+}

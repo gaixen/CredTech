@@ -1,0 +1,35 @@
+{
+  "id": "yahoo-f07a27b005eba54e",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Even at an All-Time High, The Vanguard S\u0026P 500 ETF Isn't as Expensive as It Seems",
+  "content": "",
+  "url": "https://finance.yahoo.com/m/569cecce-83c2-306e-bef2-bc9c4365dada/even-at-an-all-time-high%2C-the.html",
+  "author": "Motley Fool",
+  "published_at": "2025-08-15T00:52:00+05:30",
+  "ingested_at": "2025-08-18T21:57:38.2289301+05:30",
+  "metadata": {
+    "primary_symbol": "SPY",
+    "publisher": "Motley Fool",
+    "related_tickers": [
+      "VOO",
+      "^SPX",
+      "IVV",
+      "SPY"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "SPY"
+  ],
+  "entities": [
+    {
+      "name": "ETF",
+      "type": "STOCK_SYMBOL",
+      "confidence": 0.8,
+      "start_pos": 47,
+      "end_pos": 50
+    }
+  ]
+}

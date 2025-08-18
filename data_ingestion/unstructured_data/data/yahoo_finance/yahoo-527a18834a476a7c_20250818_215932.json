@@ -1,0 +1,30 @@
+{
+  "id": "yahoo-527a18834a476a7c",
+  "source": "yahoo_finance",
+  "type": "news",
+  "title": "Solar stocks, Tesla, TeraWulf \u0026 Google: Trending Tickers",
+  "content": "",
+  "url": "https://finance.yahoo.com/video/solar-stocks-tesla-terawulf-google-150433953.html",
+  "author": "Yahoo Finance Video",
+  "published_at": "2025-08-18T20:34:33+05:30",
+  "ingested_at": "2025-08-18T21:59:32.8178805+05:30",
+  "metadata": {
+    "primary_symbol": "GOOGL",
+    "publisher": "Yahoo Finance Video",
+    "related_tickers": [
+      "TSLA",
+      "GOOG",
+      "FSLR",
+      "ENPH",
+      "RUN",
+      "BTC-USD",
+      "WULF"
+    ]
+  },
+  "tags": [
+    "yahoo_finance",
+    "financial_news",
+    "GOOGL"
+  ],
+  "entities": null
+}

@@ -1,0 +1,19 @@
+{
+  "id": "bloomberg-0b09f2433d2045ed",
+  "source": "bloomberg",
+  "type": "news",
+  "title": "Germany’s PBB Eyes SRT Tied to $2 Billion US Portfolio",
+  "content": "Deutsche Pfandbriefbank AG is working on a debut significant risk transfer tied to about $2 billion of US commercial real estate loans, according to people familiar with the matter, as the German lender seeks to exit the US market.",
+  "url": "https://www.bloomberg.com/news/articles/2025-08-18/german-bank-pbb-eyes-srt-to-help-exit-us-commercial-property",
+  "author": "Bloomberg",
+  "published_at": "2025-08-18T11:31:21Z",
+  "ingested_at": "2025-08-18T22:04:20.851351+05:30",
+  "metadata": {
+    "guid": "https://www.bloomberg.com/news/articles/2025-08-18/german-bank-pbb-eyes-srt-to-help-exit-us-commercial-property"
+  },
+  "tags": [
+    "bloomberg",
+    "financial_news"
+  ],
+  "entities": null
+}
