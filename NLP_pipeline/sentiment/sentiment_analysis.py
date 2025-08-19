@@ -6,6 +6,7 @@ import json
 import os
 import glob
 from nltk.sentiment import SentimentIntensityAnalyzer
+from nltk.corpus import stopwords
 import re, string, glob
 
 nltk.download('vader_lexicon')
