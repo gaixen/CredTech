@@ -4,4 +4,6 @@ main.py
 .env
 data_ingestion/unstructured_data/go.sum
 data_ingestion/unstructured_data/go.mod
-data_ingestion/unstructured_data/data/
+data_ingestion/unstructured_data/data/bloomberg
+data_ingestion/unstructured_data/data/marketwatch
+data_ingestion/unstructured_data/data/yahoo_finance
