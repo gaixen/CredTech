@@ -2,3 +2,6 @@ uv.lock
 main.py
 .python-version
 .env
+data_ingestion/unstructured_data/go.sum
+data_ingestion/unstructured_data/go.mod
+data_ingestion/unstructured_data/data/

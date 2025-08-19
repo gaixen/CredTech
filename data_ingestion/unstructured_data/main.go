@@ -27,13 +27,11 @@ func main() {
 		log.Fatalf("Failed to start ingestion manager: %v", err)
 	}
 
-	log.Println("Unstructured data ingestion service started successfully")
+	log.Println("Unstructured data ingestion started")
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
-
-	log.Println("Shutting down...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
