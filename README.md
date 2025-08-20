@@ -142,7 +142,11 @@ log(CDS_it) = α + β₁×ROA_it + β₂×Leverage_it + β₃×Revenue_Growth_it
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.13(preferabley)
+  - make it using:
+  ```Bash
+  conda create -n myenv python=3.13 -y
+  ```
 - PostgreSQL (via Docker)
 - Required Python packages (see requirements.txt)
 
@@ -151,14 +155,14 @@ log(CDS_it) = α + β₁×ROA_it + β₂×Leverage_it + β₃×Revenue_Growth_it
 1. **Clone the repository**:
 
 ```bash
-git clone <repository-url>
-cd credtech
+git clone https://github.com/gaixen/CredTech.git credtech
+cd ./credtech
 ```
 
 2. **Install dependencies**:
 
 ```bash
-pip install -r requirements.txt
+uv add -r requirements.txt
 ```
 
 3. **Start PostgreSQL database**:
@@ -170,8 +174,7 @@ docker-compose up -d
 4. **Configure API keys** (create `.env` file):
 
 ```
-YAHOO_FINANCE_API_KEY=your_key
-FRED_API_KEY=your_key
+check the structures in the `.env.example` file for reference.
 ```
 
 ## Usage Examples
@@ -253,7 +256,6 @@ This framework supports:
 - **Portfolio Management**: Credit exposure analysis
 - **Academic Research**: Replication and extension of CDS literature
 - **Risk Management**: Early warning systems for credit deterioration
-
 
 ## Academic References
 
