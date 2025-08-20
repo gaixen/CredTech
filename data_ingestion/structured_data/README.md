@@ -10,11 +10,11 @@ This module ingests, stores, and serves structured financial data using FastAPI,
 
 ## Usage
 0. ```bash
-   docker compose up
+   docker-compose up -d
    ```
 1. Install dependencies:
    ```bash
-   pip install -r requirements.txt
+   uv add -r requirements.txt
    ```
 2. Change to the structured_data directory:
    ```bash

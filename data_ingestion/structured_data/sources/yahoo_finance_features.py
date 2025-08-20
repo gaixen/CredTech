@@ -1,8 +1,9 @@
 import yfinance as yf
-import pandas as pd
 from datetime import datetime
+from typing import Dict
 
-def fetch_credit_features(ticker_symbol):
+
+def fetch_credit_features(ticker_symbol: str) -> Dict:
     ticker = yf.Ticker(ticker_symbol)
     hist = ticker.history(period="1y", interval="1d", auto_adjust=True)
     hist = hist[["Close", "Volume"]].reset_index()

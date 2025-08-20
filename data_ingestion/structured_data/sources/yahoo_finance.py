@@ -1,5 +1,5 @@
 """
-Sample Yahoo Finance ingestion script (mocked)
+Mock script for Yahoo Finance ingestion script 
 """
 from storage import SessionLocal
 from models import StockPrice
@@ -22,9 +22,9 @@ def ingest_yahoo_finance(symbol: str):
         )
         session.add(price)
         session.commit()
-        print(f"✅ Ingested Yahoo Finance price for {symbol}")
+        print(f"Ingested Yahoo Finance price for {symbol}")
     except Exception as e:
         session.rollback()
-        print(f"❌ Error ingesting {symbol}: {e}")
+        print(f"Error ingesting {symbol}: {e}")
     finally:
         session.close()
