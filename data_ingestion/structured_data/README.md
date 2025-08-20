@@ -9,7 +9,9 @@ This module ingests, stores, and serves structured financial data using FastAPI,
 - REST API endpoints via FastAPI
 
 ## Usage
-
+0. ```bash
+   docker compose up
+   ```
 1. Install dependencies:
    ```bash
    pip install -r requirements.txt
@@ -18,11 +20,7 @@ This module ingests, stores, and serves structured financial data using FastAPI,
    ```bash
    cd data_ingestion/structured_data
    ```
-   
-2.1 
-```bash
-   docker compose up
-   ```
+
 3. Run the API server:
    ```bash
    python api.py
