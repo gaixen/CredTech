@@ -254,14 +254,6 @@ This framework supports:
 - **Academic Research**: Replication and extension of CDS literature
 - **Risk Management**: Early warning systems for credit deterioration
 
-## Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/academic-enhancement`)
-3. Follow academic coding standards
-4. Add comprehensive tests
-5. Update documentation
-6. Submit pull request
 
 ## Academic References
 
@@ -273,15 +265,7 @@ This framework supports:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Contact
-
-For questions about the academic methodology or implementation:
-
-- Email: [your-email]
-- LinkedIn: [your-linkedin]
-- Research Gate: [your-researchgate]
+This project is licensed under the APACHE License - see the LICENSE file for details.
 
 ---
 
