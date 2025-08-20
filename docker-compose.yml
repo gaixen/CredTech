@@ -1,0 +1,18 @@
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: credtech_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: credtech_structured
+      POSTGRES_USER: credtech
+      POSTGRES_PASSWORD: cred123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+volumes:
+  postgres_data:
