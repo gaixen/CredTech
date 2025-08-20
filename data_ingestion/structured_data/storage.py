@@ -1,6 +1,3 @@
-"""
-Database access logic for structured data
-"""
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from config import Config

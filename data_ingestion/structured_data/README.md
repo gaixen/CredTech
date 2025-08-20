@@ -1,6 +1,6 @@
-# Structured Data Ingestion
+# CredTech Structured Data API
 
-This module ingests, stores, and serves structured financial data using FastAPI, PostgreSQL, and Socket.IO.
+A comprehensive FastAPI-based financial data ingestion and retrieval system for credit risk assessment. This API provides seamless integration with multiple financial data sources including Yahoo Finance, SEC Edgar, and FRED economic data.
 
 ## Features
 - Ingest data from sources like Yahoo Finance, SEC
@@ -10,11 +10,11 @@ This module ingests, stores, and serves structured financial data using FastAPI,
 
 ## Usage
 0. ```bash
-   docker-compose up -d
+   docker compose up
    ```
 1. Install dependencies:
    ```bash
-   uv add -r requirements.txt
+   pip install -r requirements.txt
    ```
 2. Change to the structured_data directory:
    ```bash

@@ -123,3 +123,24 @@ CREATE INDEX IF NOT EXISTS idx_regulatory_filings_symbol ON regulatory_filings(s
 
 -- Insert sample data for testing
 INSERT INTO test_table (name) VALUES ('Initial Setup Complete') ON CONFLICT DO NOTHING;
+
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS total_revenue REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS net_income REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS free_cash_flow REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS total_assets REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS total_liabilities REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS equity REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS debt_short REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS debt_long REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS total_debt REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS interest_expense REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS cash REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS current_assets REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS current_liabilities REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS revenue_growth REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS sector VARCHAR;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS industry VARCHAR;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS region VARCHAR;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS current_ratio REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS leverage_ratio REAL;
+ALTER TABLE company_fundamentals ADD COLUMN IF NOT EXISTS risk_score REAL;

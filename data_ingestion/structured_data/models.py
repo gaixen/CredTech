@@ -1,6 +1,3 @@
-"""
-ORM models for structured data
-"""
 from sqlalchemy import Column, String, Integer, Float, DateTime, JSON
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -41,6 +38,27 @@ class CompanyFundamentals(Base):
     fundamentals = Column(JSON)
     source = Column(String)
     ingested_at = Column(DateTime)
+    # Explicit risk-related fields (nullable for backward compatibility)
+    total_revenue = Column(Float)
+    net_income = Column(Float)
+    free_cash_flow = Column(Float)
+    total_assets = Column(Float)
+    total_liabilities = Column(Float)
+    equity = Column(Float)
+    debt_short = Column(Float)
+    debt_long = Column(Float)
+    total_debt = Column(Float)
+    interest_expense = Column(Float)
+    cash = Column(Float)
+    current_assets = Column(Float)
+    current_liabilities = Column(Float)
+    revenue_growth = Column(Float)
+    sector = Column(String)
+    industry = Column(String)
+    region = Column(String)
+    current_ratio = Column(Float)
+    leverage_ratio = Column(Float)
+    risk_score = Column(Float)
 
 class EconomicIndicator(Base):
     __tablename__ = "economic_indicators"
@@ -74,4 +92,3 @@ class RegulatoryFiling(Base):
     data = Column(JSON)
     source = Column(String)
     ingested_at = Column(DateTime)
-
