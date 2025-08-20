@@ -137,7 +137,6 @@ func (y *YahooSource) ingestNews(ctx context.Context) {
 }
 
 func (y *YahooSource) ingestFinancialData(ctx context.Context) {
-	// Financial data has a longer interval
 	ticker := time.NewTicker(y.config.UpdateInterval * 2)
 	defer ticker.Stop()
 
