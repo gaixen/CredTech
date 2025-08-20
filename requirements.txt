@@ -15,3 +15,7 @@ db-sqlite3
 websocket
 finnhub-python
 dotenv
+scikit-learn
+scipy
+statsmodels
+linearmodels
