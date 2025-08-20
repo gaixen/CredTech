@@ -6,7 +6,6 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 try:
-    # Package-relative imports
     from .storage import SessionLocal, init_db  # type: ignore
     from .models import CompanyFundamentals, StockPrice, EconomicIndicator, RegulatoryFiling  # type: ignore
     from .sources.yahoo_finance_features import fetch_credit_features  # type: ignore
@@ -31,6 +30,7 @@ from datetime import datetime, UTC, timezone
 from contextlib import asynccontextmanager
 import uuid
 import logging
+import numpy as np
 from typing import Dict, Any, List, Optional
 
 # Configure logging
@@ -141,42 +141,123 @@ class ErrorResponse(BaseModel):
     error_type: str = Field(..., description="Type of error")
     timestamp: datetime = Field(..., description="When the error occurred")
 
+def compute_financial_metrics(fundamentals_data: Dict[str, Any]) -> Dict[str, Optional[float]]:
+    """
+    Compute comprehensive financial metrics following academic literature 
+    (Das et al., Tsai et al.)
+    """
+    metrics = {}
+    
+    try:
+        # Return on Assets: Rolling 4-quarter average to reduce seasonal effects and noise
+        if fundamentals_data.get("net_income") and fundamentals_data.get("total_assets"):
+            try:
+                roa = (fundamentals_data["net_income"] / fundamentals_data["total_assets"] ) * 100
+                metrics["roa"] = round(roa, 4)
+            except (ZeroDivisionError, TypeError):
+                metrics["roa"] = None
+        else:
+            metrics["roa"] = None
+            
+        #  Revenue Growth (RG) - rolling 4-quarter average
+        metrics["revenue_growth"] = fundamentals_data.get("revenue_growth")
+        
+        # Leverage (LEV) - ratio of total debt to total assets
+        if fundamentals_data.get("total_debt") and fundamentals_data.get("total_assets") is not None:
+            try:
+                leverage = fundamentals_data["total_debt"] / fundamentals_data["total_assets"]
+                metrics["leverage"] = round(leverage, 4)
+            except (ZeroDivisionError, TypeError):
+                metrics["leverage"] = None
+        else:
+            metrics["leverage"] = None
+            
+        # Retained Earnings ratio (EARN) - retained earnings to total assets
+        if fundamentals_data.get("retained_earnings") and fundamentals_data.get("total_assets"):
+            try:
+                retained_earnings_ratio = fundamentals_data["retained_earnings"] / fundamentals_data["total_assets"]
+                metrics["retained_earnings_ratio"] = round(retained_earnings_ratio, 4)
+            except (ZeroDivisionError, TypeError):
+                metrics["retained_earnings_ratio"] = None
+        else:
+            metrics["retained_earnings_ratio"] = None
+            
+        # Net Income Growth (NIG) - normalized by total assets
+        if fundamentals_data.get("net_income_growth") and fundamentals_data.get("total_assets") is not None:
+            try:
+                nig = fundamentals_data["net_income_growth"] / fundamentals_data["total_assets"]
+                metrics["net_income_growth_normalized"] = round(nig, 4)
+            except (ZeroDivisionError, TypeError):
+                metrics["net_income_growth_normalized"] = None
+        else:
+            metrics["net_income_growth_normalized"] = None
+            
+        # Current Ratio (traditional liquidity measure)
+        if fundamentals_data.get("current_assets") and fundamentals_data.get("current_liabilities") is not None:
+            try:
+                current_ratio = fundamentals_data["current_assets"] / fundamentals_data["current_liabilities"]
+                metrics["current_ratio"] = round(current_ratio, 4)
+            except (ZeroDivisionError, TypeError):
+                metrics["current_ratio"] = None
+        else:
+            metrics["current_ratio"] = None
+            
+        # Debt-to-Equity ratio (alternative leverage)
+        if fundamentals_data.get("total_debt") and fundamentals_data.get("equity"):
+            try:
+                debt_to_equity = fundamentals_data["total_debt"] / fundamentals_data["equity"]
+                metrics["debt_to_equity"] = round(debt_to_equity, 4)
+            except (ZeroDivisionError, TypeError):
+                metrics["debt_to_equity"] = None
+        else:
+            metrics["debt_to_equity"] = None
+            
+        return metrics
+        
+    except Exception:
+        return {key: None for key in ["roa", "revenue_growth", "leverage", "retained_earnings_ratio", 
+                                     "net_income_growth_normalized", "current_ratio", "debt_to_equity"]}
+
 def compute_risk_score(fundamentals_data: Dict[str, Any]) -> Optional[float]:
-    """Compute risk score based on financial metrics. Higher score = lower risk."""
+    """
+    Compute risk score based on financial metrics. Higher score = lower risk.
+    """
     try:
         score = 50.0
+        
+        metrics = compute_financial_metrics(fundamentals_data)
+
+        # ROA component (key predictor from literature)
+        roa = metrics.get("roa")
+        if roa is not None:
+            if roa > 10: score += 15      # Very high profitability
+            elif roa > 5: score += 10     # Good profitability
+            elif roa > 0: score += 5      # Positive profitability
+            else: score -= 15             # Negative ROA is concerning
+
+        # Leverage component (total debt to total assets)
+        leverage = metrics.get("leverage")
+        if leverage is not None:
+            if leverage < 0.3: score += 10      # Low leverage
+            elif leverage < 0.5: score += 5     # Moderate leverage
+            elif leverage < 0.7: score -= 5     # High leverage
+            else: score -= 15                   # Very high leverage
 
         # Liquidity: current ratio
-        current_ratio = fundamentals_data.get("current_ratio")
+        current_ratio = metrics.get("current_ratio")
         if current_ratio is not None:
             if current_ratio >= 2: score += 10
             elif current_ratio >= 1: score += 5
             else: score -= 10
 
-        # Leverage: debt to equity
-        leverage_ratio = fundamentals_data.get("leverage_ratio")
-        if leverage_ratio is not None:
-            if leverage_ratio < 0.5: score += 10
-            elif leverage_ratio < 1.5: score += 2
-            else: score -= 10
-
-        # Profitability: net income margin
-        if fundamentals_data.get("total_revenue") and fundamentals_data.get("net_income"):
-            try:
-                margin = fundamentals_data["net_income"] / fundamentals_data["total_revenue"]
-                if margin > 0.15: score += 10
-                elif margin > 0.05: score += 5
-                else: score -= 5
-            except (ZeroDivisionError, TypeError):
-                pass
-
-        # Growth
-        revenue_growth = fundamentals_data.get("revenue_growth")
+        # Growth component
+        revenue_growth = metrics.get("revenue_growth")
         if revenue_growth is not None:
-            if revenue_growth > 0.15: score += 5
-            elif revenue_growth < 0: score -= 5
+            if revenue_growth > 0.15: score += 8
+            elif revenue_growth > 0.05: score += 3
+            elif revenue_growth < -0.05: score -= 8
 
-        # Cash flow coverage
+        # Cash flow coverage (if available)
         if fundamentals_data.get("free_cash_flow") and fundamentals_data.get("total_debt"):
             try:
                 coverage = fundamentals_data["free_cash_flow"] / fundamentals_data["total_debt"]
@@ -263,35 +344,23 @@ def ingest_yahoo_fundamentals(ticker: str, db: Session = Depends(get_db)):
         # Process fundamentals data
         fundamentals_data = data["fundamentals"]
         if fundamentals_data and fundamentals_data.get("ticker"):
-            # Calculate derived metrics
-            current_ratio = None
-            leverage_ratio = None
+            # Calculate comprehensive financial metrics following academic literature
+            academic_metrics = compute_financial_metrics(fundamentals_data)
+            
+            # Legacy calculations for backward compatibility
+            current_ratio = academic_metrics.get("current_ratio")
+            leverage_ratio = academic_metrics.get("debt_to_equity")  # Use debt-to-equity as leverage ratio
 
-            try:
-                if fundamentals_data.get("current_assets") and fundamentals_data.get("current_liabilities"):
-                    ca = fundamentals_data.get("current_assets")
-                    cl = fundamentals_data.get("current_liabilities")
-                    if ca is not None and cl not in (None, 0):
-                        current_ratio = ca / cl
-            except Exception:
-                pass
-
-            try:
-                if fundamentals_data.get("total_debt") and fundamentals_data.get("equity"):
-                    td = fundamentals_data.get("total_debt")
-                    eq = fundamentals_data.get("equity")
-                    if eq not in (None, 0):
-                        leverage_ratio = td / eq
-            except Exception:
-                pass
-
-            # Enrich fundamentals data
+            # Enrich fundamentals data with all academic metrics
             fundamentals_enriched = {**fundamentals_data}
+            fundamentals_enriched.update(academic_metrics)
+            
+            # Add legacy fields for compatibility
             fundamentals_enriched["current_ratio"] = current_ratio
             fundamentals_enriched["leverage_ratio"] = leverage_ratio
             fundamentals_enriched["risk_score"] = compute_risk_score(fundamentals_enriched)
 
-            # Create CompanyFundamentals record
+            # Create CompanyFundamentals record with enhanced fields
             fundamental = CompanyFundamentals(
                 id=str(uuid.uuid4()),
                 company=fundamentals_data.get("company", ticker.upper()),
@@ -301,7 +370,7 @@ def ingest_yahoo_fundamentals(ticker: str, db: Session = Depends(get_db)):
                 fundamentals=fundamentals_enriched,
                 source="Yahoo Finance",
                 ingested_at=start_ts,
-                # Map specific fields
+
                 total_revenue=fundamentals_enriched.get("total_revenue"),
                 net_income=fundamentals_enriched.get("net_income"),
                 free_cash_flow=fundamentals_enriched.get("free_cash_flow"),
@@ -321,7 +390,11 @@ def ingest_yahoo_fundamentals(ticker: str, db: Session = Depends(get_db)):
                 region=fundamentals_enriched.get("region"),
                 current_ratio=current_ratio,
                 leverage_ratio=leverage_ratio,
-                risk_score=fundamentals_enriched.get("risk_score")
+                risk_score=fundamentals_enriched.get("risk_score"),
+                roa=academic_metrics.get("roa"),
+                leverage_assets=academic_metrics.get("leverage"),
+                retained_earnings_ratio=academic_metrics.get("retained_earnings_ratio"),
+                net_income_growth_normalized=academic_metrics.get("net_income_growth_normalized")
             )
 
             db.add(fundamental)
@@ -347,7 +420,7 @@ def ingest_yahoo_fundamentals(ticker: str, db: Session = Depends(get_db)):
                     db.add(sp)
                     records_created["stock_prices"] += 1
                 except (ValueError, TypeError) as e:
-                    logger.warning(f"⚠️ Skipping invalid price data for {ticker}: {e}")
+                    logger.warning(f"Skipping invalid price data for {ticker}: {e}")
                     continue
 
         db.commit()
@@ -700,13 +773,13 @@ def list_risk_scores(db: Session = Depends(get_db)):
     return {"count": len(latest), "items": list(latest.values())}
 
 @app.get(
-    "/risk_scores/{ticker}",
-    summary="Get latest risk score",
-    description="Get latest risk score for a specific ticker",
+    "/academic-metrics/{ticker}",
+    summary="Get Academic Financial Metrics",
+    description="Retrieve academic financial metrics (ROA, leverage, etc.) for CDS prediction models",
     tags=["Data Retrieval"]
 )
-def get_risk_score(ticker: str, db: Session = Depends(get_db)):
-    """Get latest risk score for a specific ticker"""
+def get_academic_metrics(ticker: str, db: Session = Depends(get_db)):
+    """Get academic financial metrics for a specific ticker following Das et al. and Tsai et al."""
     rec = db.query(CompanyFundamentals).filter(
         CompanyFundamentals.symbol == ticker.upper()
     ).order_by(CompanyFundamentals.ingested_at.desc()).first()
@@ -714,12 +787,125 @@ def get_risk_score(ticker: str, db: Session = Depends(get_db)):
     if not rec:
         raise HTTPException(status_code=404, detail="Ticker not found")
 
+    # Extract academic metrics from fundamentals JSON
+    fundamentals = rec.fundamentals or {}
+    
+    return {
+        "ticker": rec.symbol,
+        "company": rec.company,
+        "fiscal_year": rec.fiscal_year,
+        "ingested_at": rec.ingested_at,
+        "academic_metrics": {
+            # Accounting measures (following Das et al.)
+            "roa": fundamentals.get("roa"),  # Return on Assets
+            "revenue_growth": fundamentals.get("revenue_growth"),  # Revenue growth
+            "leverage": fundamentals.get("leverage"),  # Total debt to total assets
+            "retained_earnings_ratio": fundamentals.get("retained_earnings_ratio"),  # Retained earnings to total assets
+            "net_income_growth_normalized": fundamentals.get("net_income_growth_normalized"),  # Net income growth normalized by assets
+            
+            # Additional metrics for model
+            "current_ratio": fundamentals.get("current_ratio"),
+            "debt_to_equity": fundamentals.get("debt_to_equity"),
+            
+            # Risk score
+            "risk_score": rec.risk_score
+        },
+        "raw_data": {
+            "total_revenue": rec.total_revenue,
+            "net_income": rec.net_income,
+            "total_assets": rec.total_assets,
+            "total_debt": rec.total_debt,
+            "equity": rec.equity,
+            "retained_earnings": fundamentals.get("retained_earnings"),
+            "free_cash_flow": rec.free_cash_flow
+        },
+        "data_quality": {
+            "missing_fields": [
+                field for field in ["roa", "revenue_growth", "leverage", "retained_earnings_ratio"]
+                if fundamentals.get(field) is None
+            ],
+            "completeness_score": len([
+                field for field in ["roa", "revenue_growth", "leverage", "retained_earnings_ratio"]
+                if fundamentals.get(field) is not None
+            ]) / 4 * 100
+        }
+    }
+
+@app.get(
+    "/academic-metrics",
+    summary="Bulk Academic Financial Metrics",
+    description="Retrieve academic financial metrics for multiple tickers for CDS modeling",
+    tags=["Data Retrieval"]
+)
+def get_bulk_academic_metrics(limit: int = 100, db: Session = Depends(get_db)):
+    """Get academic financial metrics for multiple tickers"""
+    # Get latest record for each ticker
+    records = db.query(CompanyFundamentals).order_by(
+        CompanyFundamentals.symbol,
+        CompanyFundamentals.ingested_at.desc()
+    ).all()
+
+    latest = {}
+    for r in records:
+        if r.symbol not in latest:
+            fundamentals = r.fundamentals or {}
+            latest[r.symbol] = {
+                "ticker": r.symbol,
+                "company": r.company,
+                "fiscal_year": r.fiscal_year,
+                "ingested_at": r.ingested_at,
+                "academic_metrics": {
+                    "roa": fundamentals.get("roa"),
+                    "revenue_growth": fundamentals.get("revenue_growth"),
+                    "leverage": fundamentals.get("leverage"),
+                    "retained_earnings_ratio": fundamentals.get("retained_earnings_ratio"),
+                    "net_income_growth_normalized": fundamentals.get("net_income_growth_normalized"),
+                    "current_ratio": fundamentals.get("current_ratio"),
+                    "debt_to_equity": fundamentals.get("debt_to_equity"),
+                    "risk_score": r.risk_score
+                },
+                "data_completeness": len([
+                    field for field in ["roa", "revenue_growth", "leverage", "retained_earnings_ratio"]
+                    if fundamentals.get(field) is not None
+                ]) / 4 * 100
+            }
+
+    result_list = list(latest.values())[:limit]
+    
+    return {
+        "count": len(result_list),
+        "items": result_list,
+        "summary": {
+            "avg_completeness": sum(item["data_completeness"] for item in result_list) / len(result_list) if result_list else 0,
+            "complete_records": len([item for item in result_list if item["data_completeness"] == 100]),
+            "sectors": list(set(item.get("sector", "Unknown") for item in result_list if "sector" in item))
+        }
+    }
+
+@app.get(
+    "/risk_scores/{ticker}",
+    summary="Get latest risk score",
+    description="Get latest risk score for a specific ticker",
+    tags=["Data Retrieval"]
+)
+def get_risk_score(ticker: str, db: Session = Depends(get_db)):
+    """Get latest risk score for a specific ticker with enhanced academic metrics"""
+    rec = db.query(CompanyFundamentals).filter(
+        CompanyFundamentals.symbol == ticker.upper()
+    ).order_by(CompanyFundamentals.ingested_at.desc()).first()
+
+    if not rec:
+        raise HTTPException(status_code=404, detail="Ticker not found")
+
+    fundamentals = rec.fundamentals or {}
+    
     return {
         "ticker": rec.symbol,
         "company": rec.company,
         "risk_score": rec.risk_score,
         "ingested_at": rec.ingested_at,
         "metrics": {
+            # Core financial metrics
             "total_revenue": rec.total_revenue,
             "net_income": rec.net_income,
             "free_cash_flow": rec.free_cash_flow,
@@ -733,9 +919,107 @@ def get_risk_score(ticker: str, db: Session = Depends(get_db)):
             "current_liabilities": rec.current_liabilities,
             "revenue_growth": rec.revenue_growth,
             "current_ratio": rec.current_ratio,
-            "leverage_ratio": rec.leverage_ratio
+            "leverage_ratio": rec.leverage_ratio,
+            
+            # Academic metrics for CDS prediction
+            "roa": fundamentals.get("roa"),
+            "leverage_assets": fundamentals.get("leverage"),
+            "retained_earnings_ratio": fundamentals.get("retained_earnings_ratio"),
+            "net_income_growth_normalized": fundamentals.get("net_income_growth_normalized"),
+            "debt_to_equity": fundamentals.get("debt_to_equity")
         }
     }
+
+# Market-based metrics calculation (following academic literature)
+def calculate_naive_distance_to_default(equity_value: float, debt_value: float, 
+                                        equity_volatility: float, stock_return: float) -> Optional[float]:
+    """
+    Calculate naive distance to default following Bharath and Shumway methodology
+    Referenced in the academic paper for credit risk assessment
+    """
+    try:
+        if not all([equity_value, debt_value, equity_volatility]) or any(x <= 0 for x in [equity_value, debt_value]):
+            return None
+            
+        # Total firm volatility (naive σv) - Equation (1) from the paper
+        E = equity_value
+        F = debt_value
+        sigma_E = equity_volatility
+        
+        naive_sigma_v = (E / (E + F)) * sigma_E + (F / (E + F)) * (0.05 + 0.25 * sigma_E)
+        
+        # Naive distance to default - Equation (2) from the paper
+        T = 1.0  # One year forecasting horizon
+        
+        naive_dtd = (
+            np.log((E + F) / F) + stock_return - 0.5 * (naive_sigma_v ** 2) * T
+        ) / (naive_sigma_v * np.sqrt(T))
+        
+        return round(naive_dtd, 6)
+        
+    except Exception:
+        return None
+
+@app.post(
+    "/market-metrics/{ticker}",
+    summary="Calculate Market-Based Metrics",
+    description="Calculate market-based risk metrics including naive distance to default",
+    tags=["Auto Fetch & Store"]
+)
+def calculate_market_metrics(
+    ticker: str,
+    equity_value: float,
+    debt_value: float,
+    equity_volatility: float,
+    stock_return: float,
+    sp500_return: Optional[float] = None,
+    db: Session = Depends(get_db)
+):
+    """Calculate and store market-based metrics for credit risk assessment"""
+    try:
+        # Calculate naive distance to default
+        dtd = calculate_naive_distance_to_default(equity_value, debt_value, equity_volatility, stock_return)
+        
+        market_metrics = {
+            "equity_return": stock_return,
+            "equity_volatility": equity_volatility,
+            "index_return": sp500_return,
+            "distance_to_default": dtd,
+            "equity_value": equity_value,
+            "debt_value": debt_value,
+            "calculation_date": datetime.now(UTC).isoformat()
+        }
+        
+        # Try to update existing record or create new one
+        existing = db.query(CompanyFundamentals).filter(
+            CompanyFundamentals.symbol == ticker.upper()
+        ).order_by(CompanyFundamentals.ingested_at.desc()).first()
+        
+        if existing:
+            # Update existing record with market metrics
+            existing_fundamentals = existing.fundamentals or {}
+            existing_fundamentals.update(market_metrics)
+            existing.fundamentals = existing_fundamentals
+            db.commit()
+            
+            return {
+                "status": "success",
+                "message": f"Updated market metrics for {ticker}",
+                "ticker": ticker.upper(),
+                "market_metrics": market_metrics,
+                "distance_to_default": dtd
+            }
+        else:
+            return {
+                "status": "warning",
+                "message": f"No existing fundamentals found for {ticker}. Use /ingest/yahoo/{ticker} first.",
+                "ticker": ticker.upper(),
+                "calculated_metrics": market_metrics
+            }
+            
+    except Exception as e:
+        logger.error(f"Market metrics calculation failed for {ticker}: {e}")
+        return handle_database_error(e, f"market_metrics_{ticker}")
 
 # Manual data ingestion endpoints
 @app.post(
@@ -745,27 +1029,21 @@ def get_risk_score(ticker: str, db: Session = Depends(get_db)):
     tags=["Manual Ingest"]
 )
 def manual_ingest_fundamentals(fundamentals_data: FundamentalsCreate, db: Session = Depends(get_db)):
-    """Manually ingest company fundamentals"""
+    """Manually ingest company fundamentals with enhanced academic metrics"""
     try:
-        # Calculate derived metrics and risk score
+        # Calculate comprehensive financial metrics following academic literature
         fjson = fundamentals_data.fundamentals or {}
+        academic_metrics = compute_financial_metrics(fjson)
+        
+        # Legacy calculations for backward compatibility
+        current_ratio = academic_metrics.get("current_ratio")
+        leverage_ratio = academic_metrics.get("debt_to_equity")  # Use debt-to-equity as leverage ratio
 
-        current_ratio = None
-        if fjson.get("current_assets") and fjson.get("current_liabilities"):
-            try:
-                current_ratio = fjson["current_assets"] / fjson["current_liabilities"]
-            except (ZeroDivisionError, TypeError):
-                pass
-
-        leverage_ratio = None
-        if fjson.get("total_debt") and fjson.get("equity"):
-            try:
-                leverage_ratio = fjson["total_debt"] / fjson["equity"]
-            except (ZeroDivisionError, TypeError):
-                pass
-
-        # Enrich fundamentals data
+        # Enrich fundamentals data with all academic metrics
         enriched = dict(fjson)
+        enriched.update(academic_metrics)
+        
+        # Add legacy fields for compatibility
         enriched["current_ratio"] = current_ratio
         enriched["leverage_ratio"] = leverage_ratio
         enriched["risk_score"] = compute_risk_score(enriched)
@@ -779,7 +1057,7 @@ def manual_ingest_fundamentals(fundamentals_data: FundamentalsCreate, db: Sessio
             fundamentals=enriched,
             source=fundamentals_data.source,
             ingested_at=datetime.now(UTC),
-            # Map specific fields
+            # Map specific fields including academic metrics
             total_revenue=fjson.get("total_revenue"),
             net_income=fjson.get("net_income"),
             free_cash_flow=fjson.get("free_cash_flow"),
@@ -799,16 +1077,29 @@ def manual_ingest_fundamentals(fundamentals_data: FundamentalsCreate, db: Sessio
             region=fjson.get("region"),
             current_ratio=current_ratio,
             leverage_ratio=leverage_ratio,
-            risk_score=enriched.get("risk_score")
+            risk_score=enriched.get("risk_score"),
+            # Academic metrics from the paper
+            roa=academic_metrics.get("roa"),
+            leverage_assets=academic_metrics.get("leverage"),
+            retained_earnings_ratio=academic_metrics.get("retained_earnings_ratio"),
+            net_income_growth_normalized=academic_metrics.get("net_income_growth_normalized")
         )
         db.add(fundamental)
         db.commit()
         log_ingestion("FUNDAMENTALS", 1, fundamentals_data.source, fundamentals_data.ticker)
+        
         return {
             "status": "success",
             "message": f"Successfully ingested fundamentals for {fundamentals_data.ticker}",
             "id": fundamental.id,
-            "risk_score": enriched.get("risk_score")
+            "risk_score": enriched.get("risk_score"),
+            "academic_metrics": {
+                "roa": academic_metrics.get("roa"),
+                "leverage": academic_metrics.get("leverage"),
+                "revenue_growth": academic_metrics.get("revenue_growth"),
+                "retained_earnings_ratio": academic_metrics.get("retained_earnings_ratio"),
+                "net_income_growth_normalized": academic_metrics.get("net_income_growth_normalized")
+            }
         }
     except Exception as e:
         db.rollback()
