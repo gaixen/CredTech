@@ -5,17 +5,33 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from storage import SessionLocal, init_db
-from models import FinancialStatement, StockPrice, CompanyFundamentals, EconomicIndicator, CreditRating, RegulatoryFiling
-from pydantic import BaseModel, Field, field_validator
+try:
+    # Package-relative imports
+    from .storage import SessionLocal, init_db  # type: ignore
+    from .models import CompanyFundamentals, StockPrice, EconomicIndicator, RegulatoryFiling  # type: ignore
+    from .sources.yahoo_finance_features import fetch_credit_features  # type: ignore
+    from .sources.sec_edgar import fetch_sec_filings  # type: ignore
+    from .sources.fred_series import fetch_fred_series, FredFetchError  # type: ignore
+    from .config import Config  # type: ignore
+    from .socket_server import socket_app as socketio_app  # type: ignore
+except ImportError:  # Fallback when run as a script from the structured_data directory
+    import sys, pathlib
+    _here = pathlib.Path(__file__).resolve().parent
+    if str(_here) not in sys.path:
+        sys.path.insert(0, str(_here))  # ensure local modules precede site-packages
+    from storage import SessionLocal, init_db  # type: ignore
+    from models import CompanyFundamentals, StockPrice, EconomicIndicator, RegulatoryFiling  # type: ignore
+    from sources.yahoo_finance_features import fetch_credit_features  # type: ignore
+    from sources.sec_edgar import fetch_sec_filings  # type: ignore
+    from sources.fred_series import fetch_fred_series, FredFetchError  # type: ignore
+    from config import Config  # type: ignore
+    from socket_server import socket_app as socketio_app  # type: ignore
+from pydantic import BaseModel, Field
 from datetime import datetime, UTC, timezone
 from contextlib import asynccontextmanager
-from sources.yahoo_finance_features import fetch_credit_features
-from sources.sec_edgar import fetch_sec_filings
-from config import Config
 import uuid
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -23,134 +39,91 @@ logger = logging.getLogger(__name__)
 
 # New tag metadata for reorganized Swagger UI
 TAGS_METADATA = [
-    {"name": "Auto Fetch & Store", "description": "Fetch external data (Yahoo, SEC) and store in DB."},
-    {"name": "Fetch Only", "description": "Fetch external data without persisting (preview / on-demand)."},
-    {"name": "Manual Ingest", "description": "POST raw data you already have; API validates & stores."},
-    {"name": "Data Retrieval", "description": "GET stored records from the database."},
+    {"name": "Auto Fetch & Store", "description": "Fetch external data (Yahoo, SEC, FRED) and store in DB."},
+    {"name": "Fetch Only", "description": "Fetch external data only (no persistence)."},
+    {"name": "Manual Ingest", "description": "POST raw fundamentals data you already have."},
+    {"name": "Data Retrieval", "description": "GET stored records from the database (fundamentals, filings, indicators, risk scores)."},
     {"name": "System", "description": "Health, statistics, configuration."},
 ]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager - initializes database on startup"""
-    logger.info("API start")
-    try:
-        init_db()
-        logger.info("DB ready")
-    except Exception as e:
-        logger.error(f"DB init fail: {e}")
-        raise
+    """Initialize database on startup"""
+    logger.info("🚀 Starting CredTech Structured Data API")
+    init_db()
+    logger.info("✅ Database initialized")
     yield
-    logger.info("API stop")
+    logger.info("🛑 Shutting down CredTech Structured Data API")
 
+# FastAPI app instance
 app = FastAPI(
     title="CredTech Structured Data API",
-    description="Structured financial data ingestion & retrieval API (categorized).",
+    description="Fetch, store, and retrieve structured financial data for credit risk assessment",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    lifespan=lifespan,
-    openapi_tags=TAGS_METADATA
+    openapi_tags=TAGS_METADATA,
+    lifespan=lifespan
 )
 
-# Add CORS middleware
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Database dependency
 def get_db():
-    """Database dependency injection"""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
+# Utility functions
+def log_ingestion(data_type: str, count: int, source: str, identifier: str = ""):
+    logger.info(f"✅ INGESTED {count} {data_type} records from {source} {identifier}")
+
+def handle_database_error(e: Exception, operation: str):
+    if isinstance(e, IntegrityError):
+        return JSONResponse(status_code=409, content={"error": "Data already exists", "operation": operation})
+    return JSONResponse(status_code=500, content={"error": str(e), "operation": operation})
+
 # Enhanced Pydantic models with validation
-class FinancialStatementIn(BaseModel):
-    """Input model for Financial Statement data"""
-    company: str = Field(..., min_length=1, max_length=255, description="Company name")
-    symbol: str = Field(..., min_length=1, max_length=10, description="Stock symbol")
-    fiscal_year: int = Field(..., ge=1900, le=2100, description="Fiscal year")
-    fiscal_quarter: str = Field(..., pattern="^Q[1-4]$|^Annual$", description="Fiscal quarter (Q1-Q4 or Annual)")
-    statement_type: str = Field(..., description="Type of financial statement")
-    data: Dict[str, Any] = Field(..., description="Financial statement data")
-    source: str = Field(..., min_length=1, description="Data source")
+class FundamentalsCreate(BaseModel):
+    company: str = Field(..., description="Company name")
+    ticker: str = Field(..., description="Stock ticker symbol")
+    fiscal_year: int = Field(..., description="Fiscal year")
+    fiscal_quarter: Optional[str] = Field(None, description="Fiscal quarter (Q1, Q2, Q3, Q4)")
+    fundamentals: Dict[str, Any] = Field(..., description="Fundamentals data as JSON")
+    source: str = Field(default="manual", description="Data source")
 
-    @field_validator('data')
-    def validate_data(cls, v):
-        if not isinstance(v, dict) or not v:
-            raise ValueError('Data must be a non-empty dictionary')
-        return v
+class StockPriceCreate(BaseModel):
+    ticker: str = Field(..., description="Stock ticker symbol")
+    date: datetime = Field(..., description="Price date")
+    open: float = Field(..., description="Opening price")
+    close: float = Field(..., description="Closing price")
+    high: float = Field(..., description="High price")
+    low: float = Field(..., description="Low price")
+    volume: float = Field(..., description="Trading volume")
+    source: str = Field(default="manual", description="Data source")
 
-class StockPriceIn(BaseModel):
-    """Input model for Stock Price data"""
-    symbol: str = Field(..., min_length=1, max_length=10, description="Stock symbol")
-    date: datetime = Field(..., description="Date of the stock price")
-    open: float = Field(..., ge=0, description="Opening price")
-    close: float = Field(..., ge=0, description="Closing price")
-    high: float = Field(..., ge=0, description="Highest price")
-    low: float = Field(..., ge=0, description="Lowest price")
-    volume: float = Field(..., ge=0, description="Trading volume")
-    source: str = Field(..., min_length=1, description="Data source")
-
-    @field_validator('high')
-    def high_non_negative(cls, v):
-        if v < 0:
-            raise ValueError('High price must be non-negative')
-        return v
-
-    @field_validator('low')
-    def low_non_negative(cls, v):
-        if v < 0:
-            raise ValueError('Low price must be non-negative')
-        return v
-
-    # model-level validation for relation
-    @classmethod
-    def model_validate_high_low(cls, values: 'StockPriceIn'):
-        if values.high < values.low:
-            raise ValueError('High price must be greater than or equal to low price')
-        return values
+class FilingCreate(BaseModel):
+    company: str = Field(..., description="Company name")
+    ticker: str = Field(..., description="Stock ticker symbol")
+    filing_type: str = Field(..., description="Filing type (10-K, 10-Q, etc.)")
+    filing_date: datetime = Field(..., description="Filing date")
+    data: Dict[str, Any] = Field(..., description="Filing data as JSON")
+    source: str = Field(default="manual", description="Data source")
 
 class CompanyFundamentalsIn(BaseModel):
     """Input model for Company Fundamentals data"""
     company: str = Field(..., min_length=1, max_length=255, description="Company name")
-    symbol: str = Field(..., min_length=1, max_length=10, description="Stock symbol")
+    ticker: str = Field(..., min_length=1, max_length=10, description="Stock ticker symbol")
     fiscal_year: int = Field(..., ge=1900, le=2100, description="Fiscal year")
     fiscal_quarter: str = Field(..., description="Fiscal quarter")
     fundamentals: Dict[str, Any] = Field(..., description="Fundamental metrics")
-    source: str = Field(..., min_length=1, description="Data source")
-
-class EconomicIndicatorIn(BaseModel):
-    """Input model for Economic Indicator data"""
-    indicator_name: str = Field(..., min_length=1, max_length=255, description="Name of the economic indicator")
-    value: float = Field(..., description="Indicator value")
-    date: datetime = Field(..., description="Date of the indicator")
-    country: str = Field(..., min_length=1, max_length=3, description="Country code (ISO)")
-    source: str = Field(..., min_length=1, description="Data source")
-
-class CreditRatingIn(BaseModel):
-    """Input model for Credit Rating data"""
-    entity: str = Field(..., min_length=1, max_length=255, description="Rated entity")
-    symbol: str = Field(..., min_length=1, max_length=10, description="Stock symbol")
-    rating: str = Field(..., min_length=1, max_length=10, description="Credit rating")
-    agency: str = Field(..., min_length=1, max_length=50, description="Rating agency")
-    rating_date: datetime = Field(..., description="Date of the rating")
-    outlook: str = Field(..., description="Rating outlook")
-    source: str = Field(..., min_length=1, description="Data source")
-
-class RegulatoryFilingIn(BaseModel):
-    """Input model for Regulatory Filing data"""
-    company: str = Field(..., min_length=1, max_length=255, description="Company name")
-    symbol: str = Field(..., min_length=1, max_length=10, description="Stock symbol")
-    filing_type: str = Field(..., min_length=1, max_length=50, description="Type of filing")
-    filing_date: datetime = Field(..., description="Date of filing")
-    data: Dict[str, Any] = Field(..., description="Filing data")
     source: str = Field(..., min_length=1, description="Data source")
 
 # Response models
@@ -168,444 +141,208 @@ class ErrorResponse(BaseModel):
     error_type: str = Field(..., description="Type of error")
     timestamp: datetime = Field(..., description="When the error occurred")
 
-def log_ingestion(operation: str, records_count: int, source: str, entity: str = None):
-    logger.info(f"INGEST {operation} records={records_count} src={source} entity={entity}")
+def compute_risk_score(fundamentals_data: Dict[str, Any]) -> Optional[float]:
+    """Compute risk score based on financial metrics. Higher score = lower risk."""
+    try:
+        score = 50.0
 
-def handle_database_error(e: Exception, operation: str) -> JSONResponse:
-    """Centralized database error handling"""
-    if isinstance(e, IntegrityError):
-        logger.error(f"Integrity error {operation}: {str(e)}")
-        err = ErrorResponse(
-                error="Data integrity violation - record may already exist",
-                error_type="IntegrityError",
-                timestamp=datetime.now(UTC)
-            )
-        return JSONResponse(status_code=status.HTTP_409_CONFLICT, content=jsonable_encoder(err))
-    elif isinstance(e, SQLAlchemyError):
-        logger.error(f"DB error {operation}: {str(e)}")
-        err = ErrorResponse(
-                error="Database operation failed",
-                error_type="DatabaseError",
-                timestamp=datetime.now(UTC)
-            )
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=jsonable_encoder(err))
-    else:
-        logger.error(f"Unexpected {operation}: {str(e)}")
-        err = ErrorResponse(
-                error=str(e),
-                error_type="UnexpectedError",
-                timestamp=datetime.now(UTC)
-            )
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=jsonable_encoder(err))
+        # Liquidity: current ratio
+        current_ratio = fundamentals_data.get("current_ratio")
+        if current_ratio is not None:
+            if current_ratio >= 2: score += 10
+            elif current_ratio >= 1: score += 5
+            else: score -= 10
 
-# FinancialStatement endpoints
+        # Leverage: debt to equity
+        leverage_ratio = fundamentals_data.get("leverage_ratio")
+        if leverage_ratio is not None:
+            if leverage_ratio < 0.5: score += 10
+            elif leverage_ratio < 1.5: score += 2
+            else: score -= 10
+
+        # Profitability: net income margin
+        if fundamentals_data.get("total_revenue") and fundamentals_data.get("net_income"):
+            try:
+                margin = fundamentals_data["net_income"] / fundamentals_data["total_revenue"]
+                if margin > 0.15: score += 10
+                elif margin > 0.05: score += 5
+                else: score -= 5
+            except (ZeroDivisionError, TypeError):
+                pass
+
+        # Growth
+        revenue_growth = fundamentals_data.get("revenue_growth")
+        if revenue_growth is not None:
+            if revenue_growth > 0.15: score += 5
+            elif revenue_growth < 0: score -= 5
+
+        # Cash flow coverage
+        if fundamentals_data.get("free_cash_flow") and fundamentals_data.get("total_debt"):
+            try:
+                coverage = fundamentals_data["free_cash_flow"] / fundamentals_data["total_debt"]
+                if coverage > 0.3: score += 5
+                elif coverage < 0.05: score -= 5
+            except (ZeroDivisionError, TypeError):
+                pass
+
+        return max(0.0, min(100.0, round(score, 2)))
+    except Exception:
+        return None
+
+# FRED Series Ingestion Endpoint
 @app.post(
-    "/financial_statements/",
-    response_model=Dict[str, Any],
-    summary="Ingest financial statement",
-    description="Store one financial statement record.",
-    tags=["Manual Ingest"]
-)
-def create_financial_statement(fs: FinancialStatementIn, db: Session = Depends(get_db)):
-    """📊 INGEST: Create and store a financial statement record in PostgreSQL"""
-    try:
-        statement = FinancialStatement(
-            id=str(uuid.uuid4()),
-            company=fs.company,
-            symbol=fs.symbol,
-            fiscal_year=fs.fiscal_year,
-            fiscal_quarter=fs.fiscal_quarter,
-            statement_type=fs.statement_type,
-            data=fs.data,
-            source=fs.source,
-            ingested_at=datetime.now(UTC)
-        )
-        db.add(statement)
-        db.commit()
-        db.refresh(statement)
-
-        # Log successful ingestion
-        log_ingestion("CREATE_FINANCIAL_STATEMENT", 1, fs.source, f"{fs.company} ({fs.symbol})")
-
-        return {
-            "status": "success",
-            "message": f"Financial statement ingested for {fs.company}",
-            "record_id": statement.id,
-            "ingestion_timestamp": statement.ingested_at,
-            "source": fs.source
-        }
-    except Exception as e:
-        db.rollback()
-        return handle_database_error(e, "create_financial_statement")
-
-@app.get("/financial_statements/", summary="List financial statements", tags=["Data Retrieval"])
-def list_financial_statements(db: Session = Depends(get_db)):
-    """Retrieve all financial statements from the database"""
-    return db.query(FinancialStatement).all()
-
-@app.get("/financial_statements/{statement_id}", summary="Get financial statement", tags=["Data Retrieval"])
-def get_financial_statement(statement_id: str, db: Session = Depends(get_db)):
-    """Retrieve a specific financial statement by ID"""
-    statement = db.query(FinancialStatement).filter(FinancialStatement.id == statement_id).first()
-    if not statement:
-        raise HTTPException(status_code=404, detail="Financial statement not found")
-    return statement
-
-# StockPrice endpoints
-@app.post(
-    "/stock_prices/",
-    response_model=Dict[str, Any],
-    summary="Ingest stock price",
-    description="Store one OHLCV row.",
-    tags=["Manual Ingest"]
-)
-def create_stock_price(sp: StockPriceIn, db: Session = Depends(get_db)):
-    """📈 INGEST: Create and store a stock price record in PostgreSQL"""
-    try:
-        price = StockPrice(
-            id=str(uuid.uuid4()),
-            symbol=sp.symbol,
-            date=sp.date,
-            open=sp.open,
-            close=sp.close,
-            high=sp.high,
-            low=sp.low,
-            volume=sp.volume,
-            source=sp.source,
-            ingested_at=datetime.now(UTC)
-        )
-        db.add(price)
-        db.commit()
-        db.refresh(price)
-
-        # Log successful ingestion
-        log_ingestion("CREATE_STOCK_PRICE", 1, sp.source, sp.symbol)
-
-        return {
-            "status": "success",
-            "message": f"Stock price ingested for {sp.symbol}",
-            "record_id": price.id,
-            "ingestion_timestamp": price.ingested_at,
-            "source": sp.source
-        }
-    except Exception as e:
-        db.rollback()
-        return handle_database_error(e, "create_stock_price")
-
-@app.get("/stock_prices/", summary="List stock prices", tags=["Data Retrieval"])
-def list_stock_prices(db: Session = Depends(get_db)):
-    """Retrieve all stock prices from the database"""
-    return db.query(StockPrice).all()
-
-@app.get("/stock_prices/{price_id}", summary="Get stock price", tags=["Data Retrieval"])
-def get_stock_price(price_id: str, db: Session = Depends(get_db)):
-    """Retrieve a specific stock price by ID"""
-    price = db.query(StockPrice).filter(StockPrice.id == price_id).first()
-    if not price:
-        raise HTTPException(status_code=404, detail="Stock price not found")
-    return price
-
-# CompanyFundamentals endpoints
-@app.post(
-    "/company_fundamentals/",
-    response_model=Dict[str, Any],
-    summary="Ingest fundamentals",
-    description="Store company fundamentals JSON.",
-    tags=["Manual Ingest"]
-)
-def create_company_fundamentals(cf: CompanyFundamentalsIn, db: Session = Depends(get_db)):
-    """🏢 INGEST: Create and store company fundamentals record in PostgreSQL"""
-    try:
-        fundamentals = CompanyFundamentals(
-            id=str(uuid.uuid4()),
-            company=cf.company,
-            symbol=cf.symbol,
-            fiscal_year=cf.fiscal_year,
-            fiscal_quarter=cf.fiscal_quarter,
-            fundamentals=cf.fundamentals,
-            source=cf.source,
-            ingested_at=datetime.now(UTC)
-        )
-        db.add(fundamentals)
-        db.commit()
-        db.refresh(fundamentals)
-
-        # Log successful ingestion
-        log_ingestion("CREATE_COMPANY_FUNDAMENTALS", 1, cf.source, f"{cf.company} ({cf.symbol})")
-
-        return {
-            "status": "success",
-            "message": f"Company fundamentals ingested for {cf.company}",
-            "record_id": fundamentals.id,
-            "ingestion_timestamp": fundamentals.ingested_at,
-            "source": cf.source
-        }
-    except Exception as e:
-        db.rollback()
-        return handle_database_error(e, "create_company_fundamentals")
-
-@app.get("/company_fundamentals/", summary="List fundamentals", tags=["Data Retrieval"])
-def list_company_fundamentals(db: Session = Depends(get_db)):
-    """Retrieve all company fundamentals from the database"""
-    return db.query(CompanyFundamentals).all()
-
-@app.get("/company_fundamentals/{fundamentals_id}", summary="Get fundamentals", tags=["Data Retrieval"])
-def get_company_fundamentals(fundamentals_id: str, db: Session = Depends(get_db)):
-    """Retrieve specific company fundamentals by ID"""
-    fundamentals = db.query(CompanyFundamentals).filter(CompanyFundamentals.id == fundamentals_id).first()
-    if not fundamentals:
-        raise HTTPException(status_code=404, detail="Company fundamentals not found")
-    return fundamentals
-
-# EconomicIndicator endpoints
-@app.post(
-    "/economic_indicators/",
-    response_model=Dict[str, Any],
-    summary="Ingest economic indicator",
-    description="Store one indicator value.",
-    tags=["Manual Ingest"]
-)
-def create_economic_indicator(ei: EconomicIndicatorIn, db: Session = Depends(get_db)):
-    """🌍 INGEST: Create and store economic indicator record in PostgreSQL"""
-    try:
-        indicator = EconomicIndicator(
-            id=str(uuid.uuid4()),
-            indicator_name=ei.indicator_name,
-            value=ei.value,
-            date=ei.date,
-            country=ei.country,
-            source=ei.source,
-            ingested_at=datetime.now(UTC)
-        )
-        db.add(indicator)
-        db.commit()
-        db.refresh(indicator)
-
-        # Log successful ingestion
-        log_ingestion("CREATE_ECONOMIC_INDICATOR", 1, ei.source, f"{ei.indicator_name} ({ei.country})")
-
-        return {
-            "status": "success",
-            "message": f"Economic indicator '{ei.indicator_name}' ingested for {ei.country}",
-            "record_id": indicator.id,
-            "ingestion_timestamp": indicator.ingested_at,
-            "source": ei.source
-        }
-    except Exception as e:
-        db.rollback()
-        return handle_database_error(e, "create_economic_indicator")
-
-@app.get("/economic_indicators/", summary="List indicators", tags=["Data Retrieval"])
-def list_economic_indicators(db: Session = Depends(get_db)):
-    """Retrieve all economic indicators from the database"""
-    return db.query(EconomicIndicator).all()
-
-@app.get("/economic_indicators/{indicator_id}", summary="Get indicator", tags=["Data Retrieval"])
-def get_economic_indicator(indicator_id: str, db: Session = Depends(get_db)):
-    """Retrieve a specific economic indicator by ID"""
-    indicator = db.query(EconomicIndicator).filter(EconomicIndicator.id == indicator_id).first()
-    if not indicator:
-        raise HTTPException(status_code=404, detail="Economic indicator not found")
-    return indicator
-
-# CreditRating endpoints
-@app.post(
-    "/credit_ratings/",
-    response_model=Dict[str, Any],
-    summary="Ingest credit rating",
-    description="Store one credit rating.",
-    tags=["Manual Ingest"]
-)
-def create_credit_rating(cr: CreditRatingIn, db: Session = Depends(get_db)):
-    """⭐ INGEST: Create and store credit rating record in PostgreSQL"""
-    try:
-        rating = CreditRating(
-            id=str(uuid.uuid4()),
-            entity=cr.entity,
-            symbol=cr.symbol,
-            rating=cr.rating,
-            agency=cr.agency,
-            rating_date=cr.rating_date,
-            outlook=cr.outlook,
-            source=cr.source,
-            ingested_at=datetime.now(UTC)
-        )
-        db.add(rating)
-        db.commit()
-        db.refresh(rating)
-
-        # Log successful ingestion
-        log_ingestion("CREATE_CREDIT_RATING", 1, cr.source, f"{cr.entity} ({cr.symbol}) - {cr.rating}")
-
-        return {
-            "status": "success",
-            "message": f"Credit rating {cr.rating} ingested for {cr.entity} by {cr.agency}",
-            "record_id": rating.id,
-            "ingestion_timestamp": rating.ingested_at,
-            "source": cr.source
-        }
-    except Exception as e:
-        db.rollback()
-        return handle_database_error(e, "create_credit_rating")
-
-@app.get("/credit_ratings/", summary="List credit ratings", tags=["Data Retrieval"])
-def list_credit_ratings(db: Session = Depends(get_db)):
-    """Retrieve all credit ratings from the database"""
-    return db.query(CreditRating).all()
-
-@app.get("/credit_ratings/{rating_id}", summary="Get credit rating", tags=["Data Retrieval"])
-def get_credit_rating(rating_id: str, db: Session = Depends(get_db)):
-    """Retrieve a specific credit rating by ID"""
-    rating = db.query(CreditRating).filter(CreditRating.id == rating_id).first()
-    if not rating:
-        raise HTTPException(status_code=404, detail="Credit rating not found")
-    return rating
-
-# RegulatoryFiling endpoints
-@app.post(
-    "/regulatory_filings/",
-    response_model=Dict[str, Any],
-    summary="Ingest filing",
-    description="Store one regulatory filing.",
-    tags=["Manual Ingest"]
-)
-def create_regulatory_filing(rf: RegulatoryFilingIn, db: Session = Depends(get_db)):
-    """📄 INGEST: Create and store regulatory filing record in PostgreSQL"""
-    try:
-        filing = RegulatoryFiling(
-            id=str(uuid.uuid4()),
-            company=rf.company,
-            symbol=rf.symbol,
-            filing_type=rf.filing_type,
-            filing_date=rf.filing_date,
-            data=rf.data,
-            source=rf.source,
-            ingested_at=datetime.now(UTC)
-        )
-        db.add(filing)
-        db.commit()
-        db.refresh(filing)
-
-        # Log successful ingestion
-        log_ingestion("CREATE_REGULATORY_FILING", 1, rf.source, f"{rf.company} ({rf.symbol}) - {rf.filing_type}")
-
-        return {
-            "status": "success",
-            "message": f"Regulatory filing {rf.filing_type} ingested for {rf.company}",
-            "record_id": filing.id,
-            "ingestion_timestamp": filing.ingested_at,
-            "source": rf.source
-        }
-    except Exception as e:
-        db.rollback()
-        return handle_database_error(e, "create_regulatory_filing")
-
-@app.get("/regulatory_filings/", summary="List filings", tags=["Data Retrieval"])
-def list_regulatory_filings(db: Session = Depends(get_db)):
-    """Retrieve all regulatory filings from the database"""
-    return db.query(RegulatoryFiling).all()
-
-@app.get("/regulatory_filings/{filing_id}", summary="Get filing", tags=["Data Retrieval"])
-def get_regulatory_filing(filing_id: str, db: Session = Depends(get_db)):
-    """Retrieve a specific regulatory filing by ID"""
-    filing = db.query(RegulatoryFiling).filter(RegulatoryFiling.id == filing_id).first()
-    if not filing:
-        raise HTTPException(status_code=404, detail="Regulatory filing not found")
-    return filing
-
-# Data Source Endpoints (view-only, no ingestion)
-@app.get(
-    "/credit_features/{ticker}",
-    summary="Fetch Yahoo Finance",
-    description="Fetch credit features (no store).",
-    tags=["Fetch Only"]
-)
-def get_credit_features(ticker: str):
-    """Fetch credit features from Yahoo Finance API (view-only)"""
-    try:
-        result = fetch_credit_features(ticker)
-        logger.info(f"📈 FETCH: Yahoo Finance data for {ticker}")
-        return result  # Let FastAPI handle encoding
-    except Exception as e:
-        logger.error(f"❌ FETCH ERROR: Yahoo Finance for {ticker}: {str(e)}")
-        return {"error": str(e)}
-
-@app.get(
-    "/sec_filings/{ticker}",
-    summary="Fetch SEC filings",
-    description="Fetch SEC filings (no store).",
-    tags=["Fetch Only"]
-)
-def get_sec_filings(ticker: str):
-    try:
-        result = fetch_sec_filings(ticker)
-        logger.info(f"📄 FETCH: SEC EDGAR data for {ticker}")
-        return result
-    except Exception as e:
-        logger.error(f"❌ FETCH ERROR: SEC EDGAR for {ticker}: {str(e)}")
-        return {"error": str(e)}
-
-# Advanced Data Ingestion Endpoints (Fetch + Store)
-@app.post(
-    "/ingest/credit_features/{ticker}",
-    response_model=IngestionResponse,
-    summary="Ingest Yahoo credit data",
-    description="Fetch + store fundamentals & recent prices.",
+    "/ingest/fred/{series_id}",
+    summary="Ingest FRED Economic Series",
+    description="Fetch and store FRED economic data series in the database.",
     tags=["Auto Fetch & Store"]
 )
-def ingest_credit_features(ticker: str = Path(..., min_length=1, max_length=10, description="Stock ticker symbol"),
-                          db: Session = Depends(get_db)):
-    """🚀 INGEST: Fetch Yahoo Finance data and store in PostgreSQL"""
-    operation_start = datetime.now(UTC)
-
+def ingest_fred_series(
+    series_id: str, 
+    start: Optional[str] = None, 
+    end: Optional[str] = None, 
+    limit: int = 20, 
+    api_key: Optional[str] = None, 
+    db: Session = Depends(get_db)
+):
+    """Ingest FRED economic series data"""
+    start_ts = datetime.now(UTC)
     try:
-        logger.info(f"🚀 STARTING INGESTION: Yahoo Finance credit features for {ticker}")
+        data = fetch_fred_series(series_id, api_key=api_key, start=start, end=end)
+        observations = data.get("observations", [])[-limit:]
+        created = 0
+        for obs in observations:
+            try:
+                dt = datetime.fromisoformat(obs["date"]).replace(tzinfo=UTC)
+            except Exception:
+                continue
+            ei = EconomicIndicator(
+                id=str(uuid.uuid4()),
+                indicator_name=series_id,
+                value=obs.get("value"),
+                date=dt,
+                country="US",
+                source="FRED",
+                ingested_at=start_ts
+            )
+            db.add(ei)
+            created += 1
+        db.commit()
+        log_ingestion("FRED_SERIES", created, "FRED", series_id)
+        return {
+            "status": "success", 
+            "message": f"Ingested FRED series {series_id}", 
+            "records_created": {"economic_indicators": created}, 
+            "ingestion_timestamp": start_ts, 
+            "source": "FRED"
+        }
+    except FredFetchError as fe:
+        return JSONResponse(status_code=400, content={"error": str(fe), "hint": "Provide ?api_key=YOUR_KEY or set FRED_API_KEY env var."})
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ INGESTION FAILED: FRED {series_id}: {e}")
+        return handle_database_error(e, f"ingest_fred_{series_id}")
 
-        # Fetch data from Yahoo Finance
-        result = fetch_credit_features(ticker)
+# Yahoo Finance Endpoints
+@app.post(
+    "/ingest/yahoo/{ticker}",
+    summary="Ingest Yahoo Finance Data",
+    description="Fetch and store company fundamentals from Yahoo Finance.",
+    tags=["Auto Fetch & Store"]
+)
+def ingest_yahoo_fundamentals(ticker: str, db: Session = Depends(get_db)):
+    """Ingest Yahoo Finance fundamentals data with enhanced risk scoring"""
+    start_ts = datetime.now(UTC)
+    try:
+        data = fetch_credit_features(ticker.upper())
 
-        if not result or "fundamentals" not in result or "market_data" not in result:
+        if not data or "fundamentals" not in data:
             raise ValueError(f"Invalid data structure received from Yahoo Finance for {ticker}")
 
         records_created = {"company_fundamentals": 0, "stock_prices": 0}
 
-        # Save fundamentals to database
-        fundamentals_data = result["fundamentals"]
+        # Process fundamentals data
+        fundamentals_data = data["fundamentals"]
         if fundamentals_data and fundamentals_data.get("ticker"):
-            cf = CompanyFundamentals(
+            # Calculate derived metrics
+            current_ratio = None
+            leverage_ratio = None
+
+            try:
+                if fundamentals_data.get("current_assets") and fundamentals_data.get("current_liabilities"):
+                    ca = fundamentals_data.get("current_assets")
+                    cl = fundamentals_data.get("current_liabilities")
+                    if ca is not None and cl not in (None, 0):
+                        current_ratio = ca / cl
+            except Exception:
+                pass
+
+            try:
+                if fundamentals_data.get("total_debt") and fundamentals_data.get("equity"):
+                    td = fundamentals_data.get("total_debt")
+                    eq = fundamentals_data.get("equity")
+                    if eq not in (None, 0):
+                        leverage_ratio = td / eq
+            except Exception:
+                pass
+
+            # Enrich fundamentals data
+            fundamentals_enriched = {**fundamentals_data}
+            fundamentals_enriched["current_ratio"] = current_ratio
+            fundamentals_enriched["leverage_ratio"] = leverage_ratio
+            fundamentals_enriched["risk_score"] = compute_risk_score(fundamentals_enriched)
+
+            # Create CompanyFundamentals record
+            fundamental = CompanyFundamentals(
                 id=str(uuid.uuid4()),
-                company=fundamentals_data["ticker"],
-                symbol=fundamentals_data["ticker"],
-                fiscal_year=datetime.now(UTC).year,
-                fiscal_quarter="Current",
-                fundamentals={
-                    "total_revenue": fundamentals_data.get("total_revenue"),
-                    "total_debt": fundamentals_data.get("total_debt"),
-                    "debt_to_equity": fundamentals_data.get("debt_to_equity"),
-                    "updated_at": fundamentals_data.get("updated_at")
-                },
-                source="YahooFinance",
-                ingested_at=operation_start
+                company=fundamentals_data.get("company", ticker.upper()),
+                symbol=ticker.upper(),  # Store as symbol in DB but use ticker in API
+                fiscal_year=datetime.now().year,
+                fiscal_quarter=None,
+                fundamentals=fundamentals_enriched,
+                source="Yahoo Finance",
+                ingested_at=start_ts,
+                # Map specific fields
+                total_revenue=fundamentals_enriched.get("total_revenue"),
+                net_income=fundamentals_enriched.get("net_income"),
+                free_cash_flow=fundamentals_enriched.get("free_cash_flow"),
+                total_assets=fundamentals_enriched.get("total_assets"),
+                total_liabilities=fundamentals_enriched.get("total_liabilities"),
+                equity=fundamentals_enriched.get("equity"),
+                debt_short=fundamentals_enriched.get("debt_short"),
+                debt_long=fundamentals_enriched.get("debt_long"),
+                total_debt=fundamentals_enriched.get("total_debt"),
+                interest_expense=fundamentals_enriched.get("interest_expense"),
+                cash=fundamentals_enriched.get("cash"),
+                current_assets=fundamentals_enriched.get("current_assets"),
+                current_liabilities=fundamentals_enriched.get("current_liabilities"),
+                revenue_growth=fundamentals_enriched.get("revenue_growth"),
+                sector=fundamentals_enriched.get("sector"),
+                industry=fundamentals_enriched.get("industry"),
+                region=fundamentals_enriched.get("region"),
+                current_ratio=current_ratio,
+                leverage_ratio=leverage_ratio,
+                risk_score=fundamentals_enriched.get("risk_score")
             )
-            db.add(cf)
+
+            db.add(fundamental)
             records_created["company_fundamentals"] = 1
 
-        # Save stock prices to database
-        market_data = result.get("market_data", [])
+        # Process market data
+        market_data = data.get("market_data", [])
         for price_data in market_data:
             if price_data.get("ticker") and price_data.get("date"):
                 try:
                     sp = StockPrice(
                         id=str(uuid.uuid4()),
-                        symbol=price_data["ticker"],
+                        symbol=price_data["ticker"],  # Store as symbol in DB
                         date=datetime.fromisoformat(price_data["date"]).replace(tzinfo=UTC),
                         open=float(price_data.get("close_price", 0)),
                         close=float(price_data.get("close_price", 0)),
                         high=float(price_data.get("close_price", 0)),
                         low=float(price_data.get("close_price", 0)),
                         volume=float(price_data.get("volume", 0)),
-                        source="YahooFinance",
-                        ingested_at=operation_start
+                        source="Yahoo Finance",
+                        ingested_at=start_ts
                     )
                     db.add(sp)
                     records_created["stock_prices"] += 1
@@ -613,110 +350,587 @@ def ingest_credit_features(ticker: str = Path(..., min_length=1, max_length=10, 
                     logger.warning(f"⚠️ Skipping invalid price data for {ticker}: {e}")
                     continue
 
-        # Commit all records
         db.commit()
+        log_ingestion("YAHOO_FUNDAMENTALS", sum(records_created.values()), "Yahoo Finance", ticker)
 
-        # Log successful ingestion
-        total_records = sum(records_created.values())
-        log_ingestion("YAHOO_FINANCE_CREDIT_FEATURES", total_records, "YahooFinance", ticker)
-
-        return IngestionResponse(
-            status="success",
-            message=f"Successfully ingested credit features for {ticker}",
-            records_created=records_created,
-            ingestion_timestamp=operation_start,
-            source="YahooFinance"
-        )
-
+        return {
+            "status": "success",
+            "message": f"Ingested Yahoo Finance data for {ticker}",
+            "records_created": records_created,
+            "ingestion_timestamp": start_ts,
+            "source": "Yahoo Finance"
+        }
     except Exception as e:
         db.rollback()
-        logger.error(f"❌ INGESTION FAILED: Yahoo Finance for {ticker}: {str(e)}")
-        return handle_database_error(e, f"ingest_credit_features_{ticker}")
+        logger.error(f"❌ INGESTION FAILED: Yahoo {ticker}: {e}")
+        return handle_database_error(e, f"ingest_yahoo_{ticker}")
 
+@app.get(
+    "/fetch/yahoo/{ticker}",
+    summary="Fetch Yahoo Finance Data (No Storage)",
+    description="Fetch company fundamentals from Yahoo Finance without storing to database.",
+    tags=["Fetch Only"]
+)
+def fetch_yahoo_fundamentals(ticker: str):
+    """Fetch Yahoo Finance fundamentals data without storing"""
+    try:
+        data = fetch_credit_features(ticker.upper())
+        return {
+            "status": "success",
+            "ticker": ticker.upper(),
+            "data": data,
+            "source": "Yahoo Finance",
+            "timestamp": datetime.now(UTC)
+        }
+    except Exception as e:
+        logger.error(f"❌ FETCH FAILED: Yahoo {ticker}: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e), "ticker": ticker})
+
+# SEC Edgar Endpoints
 @app.post(
-    "/ingest/sec_filings/{ticker}",
-    response_model=IngestionResponse,
-    summary="Ingest SEC filings",
-    description="Fetch + store recent SEC filings.",
+    "/ingest/sec/{ticker}",
+    summary="Ingest SEC Edgar Filings",
+    description="Fetch and store regulatory filings from SEC Edgar.",
     tags=["Auto Fetch & Store"]
 )
-def ingest_sec_filings(ticker: str = Path(..., min_length=1, max_length=10, description="Stock ticker symbol or CIK"),
-                      db: Session = Depends(get_db)):
-    """🚀 INGEST: Fetch SEC EDGAR filings and store in PostgreSQL"""
-    operation_start = datetime.now(UTC)
-
+def ingest_sec_filings(ticker: str, limit: int = 10, db: Session = Depends(get_db)):
+    """Ingest SEC Edgar filings data"""
+    start_ts = datetime.now(UTC)
     try:
-        logger.info(f"🚀 STARTING INGESTION: SEC EDGAR filings for {ticker}")
+        logger.info(f"🚀 Starting SEC Edgar ingestion for {ticker}")
 
-        # Fetch data from SEC EDGAR
-        result = fetch_sec_filings(ticker)
+        # Fetch filings data
+        filings_data = fetch_sec_filings(ticker.upper())
 
-        if not result or "filings" not in result:
-            raise ValueError(f"Invalid data structure received from SEC EDGAR for {ticker}")
+        # Handle case where fetch_sec_filings returns None or empty
+        if not filings_data:
+            logger.warning(f"No SEC filings found for {ticker}")
+            return {
+                "status": "success",
+                "message": f"No SEC filings found for {ticker}",
+                "records_created": {"regulatory_filings": 0},
+                "ingestion_timestamp": start_ts,
+                "source": "SEC Edgar"
+            }
 
-        # Save filings to database
-        records_created = 0
-        filings = result.get("filings", [])
+        # Ensure filings_data is a list and limit the results
+        if not isinstance(filings_data, list):
+            logger.error(f"Invalid data type from SEC Edgar for {ticker}: {type(filings_data)}")
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": f"Invalid data format received from SEC Edgar: expected list, got {type(filings_data).__name__}",
+                    "operation": f"ingest_sec_{ticker}"
+                }
+            )
 
-        for filing in filings:
-            if filing.get("title") and filing.get("filing_date"):
-                try:
-                    # Parse filing date safely
-                    filing_date_str = filing.get("filing_date")
-                    if filing_date_str:
-                        if filing_date_str.endswith("Z"):
-                            filing_date = datetime.fromisoformat(filing_date_str.replace("Z", "+00:00"))
+        # Limit the number of filings to process
+        filings_to_process = filings_data[:limit] if len(filings_data) > limit else filings_data
+        created = 0
+
+        for filing in filings_to_process:
+            try:
+                # Parse filing date
+                filing_date_raw = filing.get("filing_date")
+                filing_dt = start_ts  # Default to current time
+
+                if filing_date_raw:
+                    try:
+                        if filing_date_raw.endswith("Z"):
+                            filing_dt = datetime.fromisoformat(filing_date_raw.replace("Z", "+00:00"))
                         else:
-                            filing_date = datetime.fromisoformat(filing_date_str)
-                    else:
-                        filing_date = operation_start
+                            # Try parsing as ISO format
+                            filing_dt = datetime.fromisoformat(filing_date_raw)
+                            if filing_dt.tzinfo is None:
+                                filing_dt = filing_dt.replace(tzinfo=UTC)
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Could not parse filing date '{filing_date_raw}' for {ticker}: {e}")
+                        filing_dt = start_ts
 
-                    rf = RegulatoryFiling(
-                        id=str(uuid.uuid4()),
-                        company=ticker,  # Using ticker as company identifier
-                        symbol=ticker,
-                        filing_type=filing.get("title", "Unknown")[:50],  # Truncate to fit field limit
-                        filing_date=filing_date,
-                        data={
-                            "title": filing.get("title"),
-                            "summary": filing.get("summary"),
-                            "link": filing.get("link"),
-                            "raw_filing_date": filing.get("filing_date")
-                        },
-                        source="SEC_EDGAR",
-                        ingested_at=operation_start
-                    )
-                    db.add(rf)
-                    records_created += 1
+                # Create regulatory filing record
+                regulatory_filing = RegulatoryFiling(
+                    id=str(uuid.uuid4()),
+                    company=filing.get("company", ticker.upper()),
+                    symbol=ticker.upper(),  # Store as symbol in DB
+                    filing_type=filing.get("filing_type", "Unknown")[:50],
+                    filing_date=filing_dt,
+                    data=filing,
+                    source="SEC Edgar",
+                    ingested_at=start_ts
+                )
+                db.add(regulatory_filing)
+                created += 1
 
-                except (ValueError, TypeError) as e:
-                    logger.warning(f"⚠️ Skipping invalid filing data for {ticker}: {e}")
-                    continue
+            except Exception as filing_error:
+                logger.warning(f"Skipping invalid filing for {ticker}: {filing_error}")
+                continue
 
         # Commit all records
-        db.commit()
+        if created > 0:
+            db.commit()
+            log_ingestion("SEC_FILINGS", created, "SEC Edgar", ticker)
 
-        # Log successful ingestion
-        log_ingestion("SEC_EDGAR_FILINGS", records_created, "SEC_EDGAR", ticker)
-
-        return IngestionResponse(
-            status="success",
-            message=f"Successfully ingested SEC filings for {ticker}",
-            records_created={"regulatory_filings": records_created},
-            ingestion_timestamp=operation_start,
-            source="SEC_EDGAR"
-        )
+        return {
+            "status": "success",
+            "message": f"Ingested {created} SEC filings for {ticker}",
+            "records_created": {"regulatory_filings": created},
+            "ingestion_timestamp": start_ts,
+            "source": "SEC Edgar"
+        }
 
     except Exception as e:
         db.rollback()
-        logger.error(f"❌ INGESTION FAILED: SEC EDGAR for {ticker}: {str(e)}")
-        return handle_database_error(e, f"ingest_sec_filings_{ticker}")
+        logger.error(f"❌ INGESTION FAILED: SEC {ticker}: {e}")
+        return handle_database_error(e, f"ingest_sec_{ticker}")
+
+@app.get(
+    "/fetch/sec/{ticker}",
+    summary="Fetch SEC Edgar Filings (No Storage)",
+    description="Fetch regulatory filings from SEC Edgar without storing to database.",
+    tags=["Fetch Only"]
+)
+def fetch_sec_filings_only(ticker: str, limit: int = 10):
+    """Fetch SEC Edgar filings without storing"""
+    try:
+        logger.info(f"🔍 Fetching SEC filings for {ticker} (no storage)")
+
+        filings_data = fetch_sec_filings(ticker.upper())
+
+        # Handle case where fetch returns None or empty
+        if not filings_data:
+            return {
+                "status": "success",
+                "ticker": ticker.upper(),
+                "filings": [],
+                "message": f"No SEC filings found for {ticker}",
+                "source": "SEC Edgar",
+                "timestamp": datetime.now(UTC)
+            }
+
+        # Ensure it's a list and limit results
+        if not isinstance(filings_data, list):
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": f"Invalid data format from SEC Edgar: expected list, got {type(filings_data).__name__}",
+                    "ticker": ticker
+                }
+            )
+
+        limited_filings = filings_data[:limit] if len(filings_data) > limit else filings_data
+
+        return {
+            "status": "success",
+            "ticker": ticker.upper(),
+            "filings": limited_filings,
+            "total_available": len(filings_data),
+            "returned": len(limited_filings),
+            "source": "SEC Edgar",
+            "timestamp": datetime.now(UTC)
+        }
+
+    except Exception as e:
+        logger.error(f"❌ FETCH FAILED: SEC {ticker}: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e), "ticker": ticker})
+
+@app.get(
+    "/fetch/fred/{series_id}",
+    summary="Fetch FRED Series (No Storage)",
+    description="Fetch FRED economic data without storing to database.",
+    tags=["Fetch Only"]
+)
+def fetch_fred_series_only(
+    series_id: str,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+    limit: int = 20,
+    api_key: Optional[str] = None
+):
+    """Fetch FRED series data without storing"""
+    try:
+        data = fetch_fred_series(series_id, api_key=api_key, start=start, end=end)
+        observations = data.get("observations", [])[-limit:]
+        return {
+            "status": "success",
+            "series_id": series_id,
+            "observations": observations,
+            "source": "FRED",
+            "timestamp": datetime.now(UTC)
+        }
+    except FredFetchError as fe:
+        return JSONResponse(status_code=400, content={"error": str(fe), "hint": "Provide ?api_key=YOUR_KEY or set FRED_API_KEY env var."})
+    except Exception as e:
+        logger.error(f"❌ FETCH FAILED: FRED {series_id}: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e), "series_id": series_id})
+
+# Legacy endpoints for backward compatibility (using "credit_features" naming)
+@app.get(
+    "/credit_features/{ticker}",
+    summary="Fetch Yahoo Finance (Legacy)",
+    description="Fetch credit features from Yahoo Finance API (view-only) - Legacy endpoint",
+    tags=["Fetch Only"]
+)
+def get_credit_features(ticker: str):
+    """Legacy endpoint - use /fetch/yahoo/{ticker} instead"""
+    return fetch_yahoo_fundamentals(ticker)
+
+@app.get(
+    "/sec_filings/{ticker}",
+    summary="Fetch SEC filings (Legacy)",
+    description="Fetch recent SEC EDGAR filings (no store) - Legacy endpoint",
+    tags=["Fetch Only"]
+)
+def get_sec_filings(ticker: str):
+    """Legacy endpoint - use /fetch/sec/{ticker} instead"""
+    return fetch_sec_filings_only(ticker)
+
+@app.get(
+    "/fred/{series_id}",
+    summary="Fetch FRED series (Legacy)",
+    description="Fetch macroeconomic time series from FRED (no store) - Legacy endpoint",
+    tags=["Fetch Only"]
+)
+def fetch_fred(series_id: str, start: Optional[str] = None, end: Optional[str] = None, limit: int = 20):
+    """Legacy endpoint - use /fetch/fred/{series_id} instead"""
+    return fetch_fred_series_only(series_id, start, end, limit)
+
+# Enhanced Data Retrieval Endpoints
+@app.get(
+    "/fundamentals",
+    summary="Get Company Fundamentals",
+    description="Retrieve stored company fundamentals data",
+    tags=["Data Retrieval"]
+)
+def get_fundamentals(ticker: Optional[str] = None, limit: int = 100, db: Session = Depends(get_db)):
+    """Get company fundamentals data"""
+    query = db.query(CompanyFundamentals)
+    if ticker:
+        query = query.filter(CompanyFundamentals.symbol == ticker.upper())
+    fundamentals = query.limit(limit).all()
+    return {"fundamentals": [jsonable_encoder(f) for f in fundamentals]}
+
+@app.get(
+    "/economic-indicators",
+    summary="Get Economic Indicators",
+    description="Retrieve stored economic indicators",
+    tags=["Data Retrieval"]
+)
+def get_economic_indicators(indicator_name: Optional[str] = None, limit: int = 100, db: Session = Depends(get_db)):
+    """Get economic indicators data"""
+    query = db.query(EconomicIndicator)
+    if indicator_name:
+        query = query.filter(EconomicIndicator.indicator_name == indicator_name)
+    indicators = query.limit(limit).all()
+    return {"indicators": [jsonable_encoder(i) for i in indicators]}
+
+@app.get(
+    "/stock-prices",
+    summary="Get Stock Prices",
+    description="Retrieve stored stock price data",
+    tags=["Data Retrieval"]
+)
+def get_stock_prices(ticker: Optional[str] = None, limit: int = 100, db: Session = Depends(get_db)):
+    """Get stock price data"""
+    query = db.query(StockPrice)
+    if ticker:
+        query = query.filter(StockPrice.symbol == ticker.upper())
+    prices = query.limit(limit).all()
+    return {"stock_prices": [jsonable_encoder(p) for p in prices]}
+
+@app.get(
+    "/regulatory-filings",
+    summary="Get Regulatory Filings",
+    description="Retrieve stored regulatory filings",
+    tags=["Data Retrieval"]
+)
+def get_regulatory_filings(ticker: Optional[str] = None, filing_type: Optional[str] = None, limit: int = 100, db: Session = Depends(get_db)):
+    """Get regulatory filings data"""
+    query = db.query(RegulatoryFiling)
+    if ticker:
+        query = query.filter(RegulatoryFiling.symbol == ticker.upper())
+    if filing_type:
+        query = query.filter(RegulatoryFiling.filing_type == filing_type)
+    filings = query.limit(limit).all()
+    return {"regulatory_filings": [jsonable_encoder(f) for f in filings]}
+
+@app.get(
+    "/fundamentals/{ticker}",
+    summary="Get Fundamentals by Ticker",
+    description="Retrieve fundamentals data for a specific ticker",
+    tags=["Data Retrieval"]
+)
+def get_fundamentals_by_ticker(ticker: str, db: Session = Depends(get_db)):
+    """Get fundamentals for a specific ticker"""
+    fundamentals = db.query(CompanyFundamentals).filter(
+        CompanyFundamentals.symbol == ticker.upper()
+    ).all()
+
+    if not fundamentals:
+        raise HTTPException(status_code=404, content={"error": f"No fundamentals found for ticker {ticker}"})
+
+    return {"ticker": ticker.upper(), "fundamentals": [jsonable_encoder(f) for f in fundamentals]}
+
+# Enhanced risk score endpoints
+@app.get(
+    "/risk_scores",
+    summary="List latest risk scores",
+    description="Get latest risk scores for all tickers",
+    tags=["Data Retrieval"]
+)
+def list_risk_scores(db: Session = Depends(get_db)):
+    """Get latest risk scores for all tickers"""
+    records = db.query(CompanyFundamentals).order_by(
+        CompanyFundamentals.symbol,
+        CompanyFundamentals.ingested_at.desc()
+    ).all()
+
+    latest = {}
+    for r in records:
+        if r.symbol not in latest:
+            latest[r.symbol] = {
+                "ticker": r.symbol,
+                "company": r.company,
+                "risk_score": r.risk_score,
+                "ingested_at": r.ingested_at,
+                "revenue": r.total_revenue,
+                "net_income": r.net_income,
+                "free_cash_flow": r.free_cash_flow
+            }
+
+    return {"count": len(latest), "items": list(latest.values())}
+
+@app.get(
+    "/risk_scores/{ticker}",
+    summary="Get latest risk score",
+    description="Get latest risk score for a specific ticker",
+    tags=["Data Retrieval"]
+)
+def get_risk_score(ticker: str, db: Session = Depends(get_db)):
+    """Get latest risk score for a specific ticker"""
+    rec = db.query(CompanyFundamentals).filter(
+        CompanyFundamentals.symbol == ticker.upper()
+    ).order_by(CompanyFundamentals.ingested_at.desc()).first()
+
+    if not rec:
+        raise HTTPException(status_code=404, detail="Ticker not found")
+
+    return {
+        "ticker": rec.symbol,
+        "company": rec.company,
+        "risk_score": rec.risk_score,
+        "ingested_at": rec.ingested_at,
+        "metrics": {
+            "total_revenue": rec.total_revenue,
+            "net_income": rec.net_income,
+            "free_cash_flow": rec.free_cash_flow,
+            "total_assets": rec.total_assets,
+            "total_liabilities": rec.total_liabilities,
+            "equity": rec.equity,
+            "total_debt": rec.total_debt,
+            "interest_expense": rec.interest_expense,
+            "cash": rec.cash,
+            "current_assets": rec.current_assets,
+            "current_liabilities": rec.current_liabilities,
+            "revenue_growth": rec.revenue_growth,
+            "current_ratio": rec.current_ratio,
+            "leverage_ratio": rec.leverage_ratio
+        }
+    }
+
+# Manual data ingestion endpoints
+@app.post(
+    "/manual/fundamentals",
+    summary="Manual Fundamentals Ingestion",
+    description="Manually add company fundamentals data",
+    tags=["Manual Ingest"]
+)
+def manual_ingest_fundamentals(fundamentals_data: FundamentalsCreate, db: Session = Depends(get_db)):
+    """Manually ingest company fundamentals"""
+    try:
+        # Calculate derived metrics and risk score
+        fjson = fundamentals_data.fundamentals or {}
+
+        current_ratio = None
+        if fjson.get("current_assets") and fjson.get("current_liabilities"):
+            try:
+                current_ratio = fjson["current_assets"] / fjson["current_liabilities"]
+            except (ZeroDivisionError, TypeError):
+                pass
+
+        leverage_ratio = None
+        if fjson.get("total_debt") and fjson.get("equity"):
+            try:
+                leverage_ratio = fjson["total_debt"] / fjson["equity"]
+            except (ZeroDivisionError, TypeError):
+                pass
+
+        # Enrich fundamentals data
+        enriched = dict(fjson)
+        enriched["current_ratio"] = current_ratio
+        enriched["leverage_ratio"] = leverage_ratio
+        enriched["risk_score"] = compute_risk_score(enriched)
+
+        fundamental = CompanyFundamentals(
+            id=str(uuid.uuid4()),
+            company=fundamentals_data.company,
+            symbol=fundamentals_data.ticker.upper(),  # Store ticker as symbol in DB
+            fiscal_year=fundamentals_data.fiscal_year,
+            fiscal_quarter=fundamentals_data.fiscal_quarter,
+            fundamentals=enriched,
+            source=fundamentals_data.source,
+            ingested_at=datetime.now(UTC),
+            # Map specific fields
+            total_revenue=fjson.get("total_revenue"),
+            net_income=fjson.get("net_income"),
+            free_cash_flow=fjson.get("free_cash_flow"),
+            total_assets=fjson.get("total_assets"),
+            total_liabilities=fjson.get("total_liabilities"),
+            equity=fjson.get("equity"),
+            debt_short=fjson.get("debt_short"),
+            debt_long=fjson.get("debt_long"),
+            total_debt=fjson.get("total_debt"),
+            interest_expense=fjson.get("interest_expense"),
+            cash=fjson.get("cash"),
+            current_assets=fjson.get("current_assets"),
+            current_liabilities=fjson.get("current_liabilities"),
+            revenue_growth=fjson.get("revenue_growth"),
+            sector=fjson.get("sector"),
+            industry=fjson.get("industry"),
+            region=fjson.get("region"),
+            current_ratio=current_ratio,
+            leverage_ratio=leverage_ratio,
+            risk_score=enriched.get("risk_score")
+        )
+        db.add(fundamental)
+        db.commit()
+        log_ingestion("FUNDAMENTALS", 1, fundamentals_data.source, fundamentals_data.ticker)
+        return {
+            "status": "success",
+            "message": f"Successfully ingested fundamentals for {fundamentals_data.ticker}",
+            "id": fundamental.id,
+            "risk_score": enriched.get("risk_score")
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Manual ingestion failed: {e}")
+        return handle_database_error(e, "manual_fundamentals")
+
+@app.post(
+    "/manual/stock-prices",
+    summary="Manual Stock Price Ingestion",
+    description="Manually add stock price data",
+    tags=["Manual Ingest"]
+)
+def manual_ingest_stock_price(price_data: StockPriceCreate, db: Session = Depends(get_db)):
+    """Manually ingest stock price data"""
+    try:
+        stock_price = StockPrice(
+            id=str(uuid.uuid4()),
+            symbol=price_data.ticker.upper(),  # Store ticker as symbol in DB
+            date=price_data.date,
+            open=price_data.open,
+            close=price_data.close,
+            high=price_data.high,
+            low=price_data.low,
+            volume=price_data.volume,
+            source=price_data.source,
+            ingested_at=datetime.now(UTC)
+        )
+        db.add(stock_price)
+        db.commit()
+        log_ingestion("STOCK_PRICE", 1, price_data.source, price_data.ticker)
+        return {
+            "status": "success",
+            "message": f"Successfully ingested stock price for {price_data.ticker}",
+            "id": stock_price.id
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Manual stock price ingestion failed: {e}")
+        return handle_database_error(e, "manual_stock_price")
+
+@app.post(
+    "/manual/regulatory-filings",
+    summary="Manual Filing Ingestion",
+    description="Manually add regulatory filing data",
+    tags=["Manual Ingest"]
+)
+def manual_ingest_filing(filing_data: FilingCreate, db: Session = Depends(get_db)):
+    """Manually ingest regulatory filing data"""
+    try:
+        filing = RegulatoryFiling(
+            id=str(uuid.uuid4()),
+            company=filing_data.company,
+            symbol=filing_data.ticker.upper(),  # Store ticker as symbol in DB
+            filing_type=filing_data.filing_type,
+            filing_date=filing_data.filing_date,
+            data=filing_data.data,
+            source=filing_data.source,
+            ingested_at=datetime.now(UTC)
+        )
+        db.add(filing)
+        db.commit()
+        log_ingestion("REGULATORY_FILING", 1, filing_data.source, filing_data.ticker)
+        return {
+            "status": "success",
+            "message": f"Successfully ingested filing for {filing_data.ticker}",
+            "id": filing.id
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Manual filing ingestion failed: {e}")
+        return handle_database_error(e, "manual_filing")
+
+# Legacy endpoints for backward compatibility
+@app.post(
+    "/company_fundamentals/",
+    summary="Ingest fundamentals (Legacy)",
+    description="Store company fundamentals JSON + populate risk columns - Legacy endpoint",
+    tags=["Manual Ingest"]
+)
+def create_company_fundamentals(cf: CompanyFundamentalsIn, db: Session = Depends(get_db)):
+    """Legacy endpoint - use /manual/fundamentals instead"""
+    fundamentals_data = FundamentalsCreate(
+        company=cf.company,
+        ticker=cf.ticker,
+        fiscal_year=cf.fiscal_year,
+        fiscal_quarter=cf.fiscal_quarter,
+        fundamentals=cf.fundamentals,
+        source=cf.source
+    )
+    return manual_ingest_fundamentals(fundamentals_data, db)
+
+@app.get("/company_fundamentals/", summary="List fundamentals (Legacy)", tags=["Data Retrieval"])
+def list_company_fundamentals(db: Session = Depends(get_db)):
+    """Legacy endpoint - use /fundamentals instead"""
+    return db.query(CompanyFundamentals).all()
+
+@app.get("/company_fundamentals/{fundamentals_id}", summary="Get fundamentals (Legacy)", tags=["Data Retrieval"])
+def get_company_fundamentals(fundamentals_id: str, db: Session = Depends(get_db)):
+    """Legacy endpoint - use /fundamentals/{ticker} instead"""
+    fundamentals = db.query(CompanyFundamentals).filter(CompanyFundamentals.id == fundamentals_id).first()
+    if not fundamentals:
+        raise HTTPException(status_code=404, detail="Company fundamentals not found")
+    return fundamentals
+
+# Advanced ingestion endpoints from old file
+@app.post(
+    "/ingest/credit_features/{ticker}",
+    response_model=IngestionResponse,
+    summary="Ingest Yahoo credit data (Legacy)",
+    description="Fetch + store fundamentals & recent prices - Legacy endpoint",
+    tags=["Auto Fetch & Store"]
+)
+def ingest_credit_features(ticker: str = Path(..., min_length=1, max_length=10, description="Stock ticker symbol"),
+                          db: Session = Depends(get_db)):
+    """Legacy endpoint - use /ingest/yahoo/{ticker} instead"""
+    return ingest_yahoo_fundamentals(ticker, db)
 
 # System Status and Health Check Endpoints
 @app.get(
     "/health",
-    summary="Health",
-    description="API + DB status.",
+    summary="Health Check",
+    description="API and database status check.",
     tags=["System"]
 )
 def health_check():
@@ -726,59 +940,108 @@ def health_check():
         # Open a DB session
         db = SessionLocal()
 
-        # Execute a simple query to test connectivity
-        db.execute(text("SELECT 1"))
+        # Execute a simple query to test database connectivity
+        result = db.execute(text("SELECT 1")).fetchone()
 
         return {
             "status": "healthy",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC),
             "database": "connected",
-            "api_version": "1.0.0"
+            "api": "running"
         }
     except Exception as e:
-        logger.error(f"❌ Health check failed: {str(e)}")
+        logger.error(f"Health check failed: {e}")
         return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            status_code=503,
             content={
                 "status": "unhealthy",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "database": "disconnected",
+                "timestamp": datetime.now(UTC),
+                "database": "disconnected" if db is None else "error",
+                "api": "running",
                 "error": str(e)
             }
         )
+    finally:
+        if db:
+            db.close()
 
+# System Statistics and Configuration Endpoints
 @app.get(
     "/stats",
-    summary="Stats",
-    description="Record counts.",
+    summary="Database Statistics",
+    description="Get statistics about stored data",
     tags=["System"]
 )
 def get_stats(db: Session = Depends(get_db)):
-    """Get database statistics and record counts"""
+    """Get database statistics"""
     try:
         stats = {
-            "financial_statements": db.query(FinancialStatement).count(),
-            "stock_prices": db.query(StockPrice).count(),
-            "company_fundamentals": db.query(CompanyFundamentals).count(),
-            "economic_indicators": db.query(EconomicIndicator).count(),
-            "credit_ratings": db.query(CreditRating).count(),
-            "regulatory_filings": db.query(RegulatoryFiling).count(),
-            "last_updated": datetime.now(UTC)
+            "fundamentals_count": db.query(CompanyFundamentals).count(),
+            "stock_prices_count": db.query(StockPrice).count(),
+            "economic_indicators_count": db.query(EconomicIndicator).count(),
+            "regulatory_filings_count": db.query(RegulatoryFiling).count(),
+            "unique_tickers": db.query(CompanyFundamentals.symbol).distinct().count(),
+            "data_sources": Config.SOURCES,
+            "timestamp": datetime.now(UTC)
         }
-
-        logger.info(f"📊 STATS: Database statistics retrieved")
         return stats
-
     except Exception as e:
-        logger.error(f"❌ STATS ERROR: {str(e)}")
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        logger.error(f"❌ Stats retrieval failed: {e}")
+        return handle_database_error(e, "get_stats")
+
+@app.get(
+    "/config",
+    summary="API Configuration",
+    description="Get API configuration information",
+    tags=["System"]
+)
+def get_config():
+    """Get API configuration"""
+    return {
+        "db_type": Config.DB_TYPE,
+        "sources": Config.SOURCES,
+        "socket_io_port": Config.SOCKET_IO_PORT,
+        "version": "1.0.0",
+        "timestamp": datetime.now(UTC)
+    }
 
 @app.get("/db_creds", tags=["System"])
 def get_db_creds():
+    """Get database credentials info"""
     return {
         "db_url": Config.DB_URL,
         "db_type": Config.DB_TYPE
     }
+
+# Additional legacy endpoints
+@app.get("/regulatory_filings/", summary="List regulatory filings (Legacy)", tags=["Data Retrieval"])
+def list_reg_filings(db: Session = Depends(get_db)):
+    """Legacy endpoint - use /regulatory-filings instead"""
+    return db.query(RegulatoryFiling).all()
+
+@app.get("/regulatory_filings/{filing_id}", summary="Get regulatory filing (Legacy)", tags=["Data Retrieval"])
+def get_reg_filing(filing_id: str, db: Session = Depends(get_db)):
+    """Legacy endpoint - use /regulatory-filings instead"""
+    rf = db.query(RegulatoryFiling).filter(RegulatoryFiling.id == filing_id).first()
+    if not rf:
+        raise HTTPException(status_code=404, detail="Filing not found")
+    return rf
+
+@app.get("/economic_indicators/", summary="List economic indicators (Legacy)", tags=["Data Retrieval"])
+def list_economic_indicators(db: Session = Depends(get_db)):
+    """Legacy endpoint - use /economic-indicators instead"""
+    return db.query(EconomicIndicator).all()
+
+@app.get("/economic_indicators/{indicator_id}", summary="Get economic indicator (Legacy)", tags=["Data Retrieval"])
+def get_economic_indicator(indicator_id: str, db: Session = Depends(get_db)):
+    """Legacy endpoint - use /economic-indicators instead"""
+    ei = db.query(EconomicIndicator).filter(EconomicIndicator.id == indicator_id).first()
+    if not ei:
+        raise HTTPException(status_code=404, detail="Indicator not found")
+    return ei
+
+# Mount the Socket.IO app
+app.mount("/socket.io", socketio_app)
 
 if __name__ == "__main__":
     import uvicorn

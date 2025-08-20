@@ -1,25 +1,29 @@
 """
-Socket.IO server for real-time updates
+Socket.IO server (ASGI) for real-time updates integrated with FastAPI.
+Import `socket_app` and mount on a path in api.py
 """
 import socketio
-import eventlet
 from config import Config
 
-sio = socketio.Server(cors_allowed_origins='*')
-app = socketio.WSGIApp(sio)
+# Async ASGI Socket.IO server
+sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
+socket_app = socketio.ASGIApp(sio)
 
 @sio.event
-def connect(sid, environ):
+async def connect(sid, environ):
     print(f"Client connected: {sid}")
 
 @sio.event
-def disconnect(sid):
+async def disconnect(sid):
     print(f"Client disconnected: {sid}")
 
-# Example event to send data
-def send_update(data):
-    sio.emit('data_update', data)
+async def send_update(data):
+    await sio.emit('data_update', data)
 
 if __name__ == "__main__":
-    print(f"Starting Socket.IO server on port {Config.SOCKET_IO_PORT}")
-    eventlet.wsgi.server(eventlet.listen(('0.0.0.0', Config.SOCKET_IO_PORT)), app)
+    # Optional standalone run
+    import uvicorn, os
+    host = os.getenv("API_HOST", "0.0.0.0")
+    port = int(os.getenv("SOCKET_IO_PORT", str(Config.SOCKET_IO_PORT)))
+    # Minimal ASGI wrapper
+    uvicorn.run(socket_app, host=host, port=port)
