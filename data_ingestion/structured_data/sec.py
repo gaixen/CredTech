@@ -10,6 +10,8 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 
+load_dotenv()
+
 user_agent = os.getenv('USER_AGENT')
 
 headers = {'User-Agent': user_agent}
@@ -60,4 +62,4 @@ assetsData = pd.DataFrame.from_dict((
 assets10Q = assetsData[assetsData.form == '10-Q']
 assets10Q = assets10Q.reset_index(drop=True)
 
-assets10Q.head()
+# print(f"assets10q data :{assets10Q.head()}")
