@@ -1,0 +1,38 @@
+{
+    "overall_sentiment": "Negative",
+    "weighted_score": -1.0,
+    "positive_reasons": [
+        {
+            "reason": "",
+            "keywords": [
+            ]
+        },
+        {
+            "reason": "",
+            "keywords": [
+            ]
+        },
+        {
+            "reason": "",
+            "keywords": [
+            ]
+        }
+    ],
+    "negative_reasons": [
+        {
+            "reason": "",
+            "keywords": [
+            ]
+        },
+        {
+            "reason": "",
+            "keywords": [
+            ]
+        },
+        {
+            "reason": "",
+            "keywords": [
+            ]
+        }
+    ]
+}
