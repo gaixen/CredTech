@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "yfinance": {
+      "command": "python",
+      "args": [
+        "C:/Users/DELL/credtech/data_ingestion/structured_data/yf.py"
+      ]
+    }
+  }
+}

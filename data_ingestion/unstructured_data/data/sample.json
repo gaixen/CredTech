@@ -1,0 +1,26 @@
+{
+  "id": "",
+  "source": " ",
+  "type": " ",
+  "title": " ",
+  "content": "",
+  "url": " ",
+  "author": " ",
+  "published_at": " ",
+  "ingested_at": " ",
+  "metadata": {
+    "primary_symbol": " ",
+    "publisher": " ",
+    "related_tickers": []
+  },
+  "tags": [],
+  "entities": [
+    {
+      "name": " ",
+      "type": " ",
+      "confidence": 0.8,
+      "start_pos": 23,
+      "end_pos": 25
+    }
+  ]
+}

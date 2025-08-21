@@ -104,15 +104,13 @@ func (s *InMemoryStorage) Close() error {
 	return nil
 }
 
-// Implement remaining Storage interface methods for InMemoryStorage
 func (s *InMemoryStorage) SaveProcessingJob(ctx context.Context, job *models.ProcessingJob) error {
-	// For in-memory storage, we can just log the job
+	
 	log.Printf("Processing job saved (in-memory): %s - %s", job.ID, job.JobType)
 	return nil
 }
 
 func (s *InMemoryStorage) GetPendingJobs(ctx context.Context, jobType string, limit int) ([]*models.ProcessingJob, error) {
-	// Return empty slice for in-memory storage
 	return []*models.ProcessingJob{}, nil
 }
 
@@ -127,7 +125,7 @@ func (s *InMemoryStorage) SaveDataQuality(ctx context.Context, quality *models.D
 }
 
 func (s *InMemoryStorage) GetDataQualityStats(ctx context.Context, source string, since time.Time) (*DataQualityStats, error) {
-	// Return default stats for in-memory storage
+	
 	return &DataQualityStats{
 		AverageQuality:      0.8,
 		AverageCompleteness: 0.9,
@@ -138,7 +136,6 @@ func (s *InMemoryStorage) GetDataQualityStats(ctx context.Context, source string
 	}, nil
 }
 
-// FileStorage - Persistent file-based storage for development
 type FileStorage struct {
 	dataDir string
 	mu      sync.RWMutex
@@ -157,23 +154,18 @@ func NewFileStorage(dataDir string) (*FileStorage, error) {
 func (fs *FileStorage) SaveUnstructuredData(ctx context.Context, data *models.UnstructuredData) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
-
-	// Create subdirectory by source
 	sourceDir := filepath.Join(fs.dataDir, data.Source)
 	if err := os.MkdirAll(sourceDir, 0755); err != nil {
 		return fmt.Errorf("failed to create source directory: %w", err)
 	}
 
-	// Check if file already exists (deduplication)
 	pattern := filepath.Join(sourceDir, fmt.Sprintf("%s_*.json", data.ID))
 	matches, err := filepath.Glob(pattern)
 	if err == nil && len(matches) > 0 {
-		// File already exists, skip saving
-		log.Printf("⏭️  Skipping duplicate: %s - %s", data.Source, data.Title)
+		log.Printf("     Skipping duplicate: %s - %s", data.Source, data.Title)
 		return nil
 	}
 
-	// Create filename with timestamp (only if new)
 	filename := fmt.Sprintf("%s_%s.json", data.ID, time.Now().Format("20060102_150405"))
 	filePath := filepath.Join(sourceDir, filename)
 
@@ -194,17 +186,17 @@ func (fs *FileStorage) SaveUnstructuredData(ctx context.Context, data *models.Un
 }
 
 func (fs *FileStorage) GetUnstructuredData(ctx context.Context, id string) (*models.UnstructuredData, error) {
-	// Simple implementation - search through files
+	
 	return nil, fmt.Errorf("GetUnstructuredData not implemented for file storage")
 }
 
 func (fs *FileStorage) ListUnstructuredData(ctx context.Context, filters DataFilters) ([]*models.UnstructuredData, error) {
-	// Simple implementation - return empty for now
+	
 	return []*models.UnstructuredData{}, nil
 }
 
 func (fs *FileStorage) SaveProcessingJob(ctx context.Context, job *models.ProcessingJob) error {
-	return nil // Not implemented for file storage
+	return nil 
 }
 
 func (fs *FileStorage) GetPendingJobs(ctx context.Context, jobType string, limit int) ([]*models.ProcessingJob, error) {
@@ -212,11 +204,11 @@ func (fs *FileStorage) GetPendingJobs(ctx context.Context, jobType string, limit
 }
 
 func (fs *FileStorage) UpdateJobStatus(ctx context.Context, jobID string, status string, result map[string]interface{}, errorMsg string) error {
-	return nil // Not implemented for file storage
+	return nil 
 }
 
 func (fs *FileStorage) SaveDataQuality(ctx context.Context, quality *models.DataQuality) error {
-	return nil // Not implemented for file storage
+	return nil
 }
 
 func (fs *FileStorage) GetDataQualityStats(ctx context.Context, source string, since time.Time) (*DataQualityStats, error) {
@@ -229,14 +221,12 @@ func (fs *FileStorage) Close() error {
 }
 
 func NewStorage(cfg config.DatabaseConfig) (Storage, error) {
-	// Try file storage first (for development)
 	dataDir := "./data"
 	if fileStore, err := NewFileStorage(dataDir); err == nil {
 		log.Printf("Using file storage in directory: %s", dataDir)
 		return fileStore, nil
 	}
 
-	// Try to connect to PostgreSQL
 	db, err := sql.Open("postgres", cfg.URL)
 	if err != nil {
 		log.Printf("Failed to open database connection, falling back to in-memory storage: %v", err)
@@ -245,7 +235,7 @@ func NewStorage(cfg config.DatabaseConfig) (Storage, error) {
 
 	if err := db.Ping(); err != nil {
 		log.Printf("Failed to ping database, falling back to in-memory storage: %v", err)
-		db.Close() // Close the failed connection
+		db.Close() // close failed connections
 		return NewInMemoryStorage(), nil
 	}
 

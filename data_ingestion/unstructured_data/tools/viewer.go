@@ -84,6 +84,6 @@ func main() {
 			fmt.Printf("  %s: %d files\n", strings.ToUpper(source), count)
 		}
 	} else {
-		fmt.Println("No data files found. Run 'go run main.go' to start collecting data.")
+		fmt.Println("No data files found.")
 	}
 }
