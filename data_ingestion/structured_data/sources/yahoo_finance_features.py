@@ -20,6 +20,7 @@ def fetch_credit_features(ticker_symbol: str) -> Dict:
         "total_assets": info.get("totalAssets"),
         "total_liabilities": info.get("totalLiab"),
         "equity": info.get("totalStockholderEquity"),
+        "retained_earnings": info.get("retainedEarnings"),  # Added retained earnings
         # Debt & interest
         "debt_short": info.get("shortLongTermDebt") or info.get("shortTermDebt"),
         "debt_long": info.get("longTermDebt"),
@@ -29,9 +30,17 @@ def fetch_credit_features(ticker_symbol: str) -> Dict:
         "cash": info.get("cash"),
         "current_assets": info.get("totalCurrentAssets"),
         "current_liabilities": info.get("totalCurrentLiabilities"),
-        # Ratios / growth
+        # Ratios / growth - Use Yahoo's pre-calculated values when available
         "debt_to_equity": info.get("debtToEquity"),
+        "current_ratio": info.get("currentRatio"),
+        "quick_ratio": info.get("quickRatio"),
+        "return_on_assets": info.get("returnOnAssets"),  # Pre-calculated ROA
+        "return_on_equity": info.get("returnOnEquity"),  # Pre-calculated ROE
+        "gross_margins": info.get("grossMargins"),
+        "profit_margins": info.get("profitMargins"),
         "revenue_growth": info.get("revenueGrowth"),  # Typically YoY from Yahoo
+        "earnings_growth": info.get("earningsGrowth"),  # Added earnings growth
+        "net_income_growth": info.get("earningsGrowth"),  # Use earnings growth as proxy for net income growth
         # Classification / geography
         "sector": info.get("sector"),
         "industry": info.get("industry"),

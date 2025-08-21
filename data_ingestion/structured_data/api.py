@@ -143,27 +143,22 @@ class ErrorResponse(BaseModel):
 
 def compute_financial_metrics(fundamentals_data: Dict[str, Any]) -> Dict[str, Optional[float]]:
     """
-    Compute comprehensive financial metrics following academic literature 
-    (Das et al., Tsai et al.)
+    Extract financial metrics, prioritizing Yahoo Finance pre-calculated values
     """
     metrics = {}
     
     try:
-        # Return on Assets: Rolling 4-quarter average to reduce seasonal effects and noise
-        if fundamentals_data.get("net_income") and fundamentals_data.get("total_assets"):
-            try:
-                roa = (fundamentals_data["net_income"] / fundamentals_data["total_assets"] ) * 100
-                metrics["roa"] = round(roa, 4)
-            except (ZeroDivisionError, TypeError):
-                metrics["roa"] = None
+        # ROA: Use Yahoo's pre-calculated value (already as percentage)
+        if fundamentals_data.get("return_on_assets") is not None:
+            metrics["roa"] = round(fundamentals_data["return_on_assets"] * 100, 4)
         else:
             metrics["roa"] = None
             
-        #  Revenue Growth (RG) - rolling 4-quarter average
+        # Revenue Growth: Directly from Yahoo Finance
         metrics["revenue_growth"] = fundamentals_data.get("revenue_growth")
         
-        # Leverage (LEV) - ratio of total debt to total assets
-        if fundamentals_data.get("total_debt") and fundamentals_data.get("total_assets") is not None:
+        # Leverage: Only calculate if we have raw data (Yahoo doesn't provide this specific ratio)
+        if fundamentals_data.get("total_debt") and fundamentals_data.get("total_assets"):
             try:
                 leverage = fundamentals_data["total_debt"] / fundamentals_data["total_assets"]
                 metrics["leverage"] = round(leverage, 4)
@@ -172,7 +167,7 @@ def compute_financial_metrics(fundamentals_data: Dict[str, Any]) -> Dict[str, Op
         else:
             metrics["leverage"] = None
             
-        # Retained Earnings ratio (EARN) - retained earnings to total assets
+        # Retained Earnings ratio: Calculate if data available
         if fundamentals_data.get("retained_earnings") and fundamentals_data.get("total_assets"):
             try:
                 retained_earnings_ratio = fundamentals_data["retained_earnings"] / fundamentals_data["total_assets"]
@@ -182,42 +177,31 @@ def compute_financial_metrics(fundamentals_data: Dict[str, Any]) -> Dict[str, Op
         else:
             metrics["retained_earnings_ratio"] = None
             
-        # Net Income Growth (NIG) - normalized by total assets
-        if fundamentals_data.get("net_income_growth") and fundamentals_data.get("total_assets") is not None:
+        # Net Income Growth: Use earnings growth as proxy, normalize by assets if available
+        if fundamentals_data.get("earnings_growth") and fundamentals_data.get("total_assets"):
             try:
-                nig = fundamentals_data["net_income_growth"] / fundamentals_data["total_assets"]
+                nig = fundamentals_data["earnings_growth"] / fundamentals_data["total_assets"]
                 metrics["net_income_growth_normalized"] = round(nig, 4)
             except (ZeroDivisionError, TypeError):
                 metrics["net_income_growth_normalized"] = None
         else:
             metrics["net_income_growth_normalized"] = None
             
-        # Current Ratio (traditional liquidity measure)
-        if fundamentals_data.get("current_assets") and fundamentals_data.get("current_liabilities") is not None:
-            try:
-                current_ratio = fundamentals_data["current_assets"] / fundamentals_data["current_liabilities"]
-                metrics["current_ratio"] = round(current_ratio, 4)
-            except (ZeroDivisionError, TypeError):
-                metrics["current_ratio"] = None
-        else:
-            metrics["current_ratio"] = None
+        # Current Ratio: Use Yahoo's pre-calculated value
+        metrics["current_ratio"] = fundamentals_data.get("current_ratio")
+        if metrics["current_ratio"] is not None:
+            metrics["current_ratio"] = round(metrics["current_ratio"], 4)
             
-        # Debt-to-Equity ratio (alternative leverage)
-        if fundamentals_data.get("total_debt") and fundamentals_data.get("equity"):
-            try:
-                debt_to_equity = fundamentals_data["total_debt"] / fundamentals_data["equity"]
-                metrics["debt_to_equity"] = round(debt_to_equity, 4)
-            except (ZeroDivisionError, TypeError):
-                metrics["debt_to_equity"] = None
-        else:
-            metrics["debt_to_equity"] = None
+        # Debt-to-Equity: Use Yahoo's pre-calculated value
+        metrics["debt_to_equity"] = fundamentals_data.get("debt_to_equity")
+        if metrics["debt_to_equity"] is not None:
+            metrics["debt_to_equity"] = round(metrics["debt_to_equity"], 4)
             
         return metrics
         
     except Exception:
         return {key: None for key in ["roa", "revenue_growth", "leverage", "retained_earnings_ratio", 
                                      "net_income_growth_normalized", "current_ratio", "debt_to_equity"]}
-
 def compute_risk_score(fundamentals_data: Dict[str, Any]) -> Optional[float]:
     """
     Compute risk score based on financial metrics. Higher score = lower risk.
@@ -390,11 +374,7 @@ def ingest_yahoo_fundamentals(ticker: str, db: Session = Depends(get_db)):
                 region=fundamentals_enriched.get("region"),
                 current_ratio=current_ratio,
                 leverage_ratio=leverage_ratio,
-                risk_score=fundamentals_enriched.get("risk_score"),
-                roa=academic_metrics.get("roa"),
-                leverage_assets=academic_metrics.get("leverage"),
-                retained_earnings_ratio=academic_metrics.get("retained_earnings_ratio"),
-                net_income_growth_normalized=academic_metrics.get("net_income_growth_normalized")
+                risk_score=fundamentals_enriched.get("risk_score")
             )
 
             db.add(fundamental)
