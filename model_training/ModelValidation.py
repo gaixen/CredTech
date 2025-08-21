@@ -120,7 +120,10 @@ class ModelValidation:
         winsor_results = []
         
         for level in winsorization_levels:
-            from feature_engineering.academic_features import AcademicFeatureEngineer
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'feature_engineering'))
+            from feature_engineering.AcademicFeatureEngineer import AcademicFeatureEngineer
             engineer = AcademicFeatureEngineer(winsorize_level=level)
             df_winsorized = engineer.winsorize_variables(df)
             

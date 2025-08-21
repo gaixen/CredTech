@@ -49,7 +49,10 @@ def train_cds_prediction_model(features_df: pd.DataFrame, target_col: str = 'log
     logger.info(f"Training CDS prediction model: {model_type}")
     
     # Get feature categories
-    from feature_engineering.academic_features import AcademicFeatureEngineer
+    import sys
+    import os
+    # sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'feature_engineering'))
+    from feature_engineering.AcademicFeatureEngineer import AcademicFeatureEngineer
     engineer = AcademicFeatureEngineer()
     feature_categories = engineer.get_feature_categories()
     
