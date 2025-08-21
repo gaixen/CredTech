@@ -59,6 +59,11 @@ class CompanyFundamentals(Base):
     current_ratio = Column(Float)
     leverage_ratio = Column(Float)
     risk_score = Column(Float)
+    # Academic metrics fields to fix "roa is invalid keyword argument" error
+    roa = Column(Float)
+    leverage_assets = Column(Float)
+    retained_earnings_ratio = Column(Float)
+    net_income_growth_normalized = Column(Float)
 
 class EconomicIndicator(Base):
     __tablename__ = "economic_indicators"
