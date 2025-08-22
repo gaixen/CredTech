@@ -5,7 +5,7 @@ Base = declarative_base()
 
 class FinancialStatement(Base):
     __tablename__ = "financial_statements"
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     company = Column(String)
     symbol = Column(String)
     fiscal_year = Column(Integer)
@@ -17,7 +17,7 @@ class FinancialStatement(Base):
 
 class StockPrice(Base):
     __tablename__ = "stock_prices"
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     symbol = Column(String)
     date = Column(DateTime)
     open = Column(Float)
@@ -30,7 +30,7 @@ class StockPrice(Base):
 
 class CompanyFundamentals(Base):
     __tablename__ = "company_fundamentals"
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     company = Column(String)
     symbol = Column(String)
     fiscal_year = Column(Integer)
@@ -61,13 +61,14 @@ class CompanyFundamentals(Base):
     risk_score = Column(Float)
     # Academic metrics fields to fix "roa is invalid keyword argument" error
     roa = Column(Float)
-    leverage_assets = Column(Float)
-    retained_earnings_ratio = Column(Float)
-    net_income_growth_normalized = Column(Float)
+    roe = Column(Float)  # Return on Equity - exists in actual database
+    # leverage_assets = Column(Float)  # This column doesn't exist in actual database
+    # retained_earnings_ratio = Column(Float)  # This column doesn't exist in actual database
+    # net_income_growth_normalized = Column(Float)  # This column doesn't exist in actual database
 
 class EconomicIndicator(Base):
     __tablename__ = "economic_indicators"
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     indicator_name = Column(String)
     value = Column(Float)
     date = Column(DateTime)
@@ -77,7 +78,7 @@ class EconomicIndicator(Base):
 
 class CreditRating(Base):
     __tablename__ = "credit_ratings"
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     entity = Column(String)
     symbol = Column(String)
     rating = Column(String)
@@ -89,7 +90,7 @@ class CreditRating(Base):
 
 class RegulatoryFiling(Base):
     __tablename__ = "regulatory_filings"
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     company = Column(String)
     symbol = Column(String)
     filing_type = Column(String)

@@ -339,23 +339,30 @@ class AcademicFeatureEngineer:
     def prepare_model_features(self, df: pd.DataFrame, target_col: str = 'cds_spread') -> Tuple[pd.DataFrame, pd.Series]:
         """
         Complete feature engineering pipeline for CDS prediction model
+        Flexible to work with database schema fields
         
         Args:
-            df: Raw financial data
+            df: Raw financial data from database or CSV
             target_col: Name of target variable column
             
         Returns:
             Tuple of (features_df, target_series)
         """
         logger.info("Starting complete feature engineering pipeline")
+        logger.info(f"Input data shape: {df.shape}")
+        logger.info(f"Available columns: {list(df.columns)}")
+        
+        # Prepare data for processing
+        df_prepared = self._prepare_database_fields(df)
         
         # 1. Create base features
-        df_features = self.create_accounting_features(df)
+        df_features = self.create_accounting_features(df_prepared)
         df_features = self.create_market_features(df_features)
         df_features = self.create_macroeconomic_features(df_features)
         
-        # 2. Calculate rolling averages
-        df_features = self.calculate_rolling_averages(df_features)
+        # 2. Calculate rolling averages (only if multiple time periods available)
+        if 'date' in df_features.columns and len(df_features['symbol'].unique()) > 1:
+            df_features = self.calculate_rolling_averages(df_features)
         
         # 3. Create interaction features
         df_features = self.create_interaction_features(df_features)
@@ -363,16 +370,133 @@ class AcademicFeatureEngineer:
         # 4. Winsorize variables
         df_features = self.winsorize_variables(df_features)
         
-        # 5. Transform target variable
+        # 5. Transform target variable or create mock target
         if target_col in df_features.columns:
             log_target = self.transform_target_variable(df_features[target_col])
         else:
-            logger.warning(f"Target variable {target_col} not found in data")
-            log_target = pd.Series(dtype=float)
+            logger.warning(f"Target variable {target_col} not found. Creating mock target based on risk score.")
+            # Create mock CDS spreads based on risk score for training purposes
+            if 'risk_score' in df_features.columns and df_features['risk_score'].notna().any():
+                # Convert risk score to mock CDS spreads (higher risk = higher spread)
+                risk_scores = df_features['risk_score'].fillna(0.5)  # Default risk score
+                mock_spreads = risk_scores * 50 + np.random.normal(0, 10, len(df_features))
+                mock_spreads = np.maximum(mock_spreads, 1.0)  # Ensure positive
+                log_target = self.transform_target_variable(pd.Series(mock_spreads, dtype=float))
+            else:
+                # Default mock spreads if no risk score available
+                mock_spreads = np.random.uniform(10, 100, len(df_features))  # Random spreads between 10-100 bps
+                log_target = self.transform_target_variable(pd.Series(mock_spreads, dtype=float))
         
-        logger.info("Feature engineering pipeline completed")
+        logger.info(f"Feature engineering completed. Output shape: {df_features.shape}")
         
         return df_features, log_target
+    
+    def _prepare_database_fields(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Prepare database fields to match academic feature engineering expectations
+        
+        Args:
+            df: DataFrame from database
+            
+        Returns:
+            DataFrame with standardized field names
+        """
+        logger.info("Preparing database fields for feature engineering")
+        
+        df_prep = df.copy()
+        
+        # Ensure symbol column exists
+        if 'symbol' not in df_prep.columns and 'ticker' in df_prep.columns:
+            df_prep['symbol'] = df_prep['ticker']
+        
+        # Ensure date column exists and is datetime
+        if 'date' in df_prep.columns:
+            df_prep['date'] = pd.to_datetime(df_prep['date'])
+        
+        # Map database fields to expected academic fields
+        field_mapping = {
+            'return_on_assets': 'roa',
+            'leverage_ratio': 'leverage',
+            'current_ratio': 'current_ratio',
+            'revenue_growth': 'revenue_growth'
+        }
+        
+        for db_field, academic_field in field_mapping.items():
+            if db_field in df_prep.columns and academic_field not in df_prep.columns:
+                df_prep[academic_field] = df_prep[db_field]
+        
+        # Calculate missing key metrics from database fields
+        
+        # ROA from database fields
+        if 'roa' not in df_prep.columns and 'net_income' in df_prep.columns and 'total_assets' in df_prep.columns:
+            df_prep['roa'] = (df_prep['net_income'] / df_prep['total_assets'].replace(0, np.nan)) * 100
+        
+        # Leverage from database fields  
+        if 'leverage' not in df_prep.columns:
+            if 'leverage_ratio' in df_prep.columns:
+                df_prep['leverage'] = df_prep['leverage_ratio']
+            elif 'total_debt' in df_prep.columns and 'total_assets' in df_prep.columns:
+                df_prep['leverage'] = df_prep['total_debt'] / df_prep['total_assets'].replace(0, np.nan)
+            elif 'total_liabilities' in df_prep.columns and 'total_assets' in df_prep.columns:
+                df_prep['leverage'] = df_prep['total_liabilities'] / df_prep['total_assets'].replace(0, np.nan)
+        
+        # Current ratio from database fields
+        if 'current_ratio' not in df_prep.columns and 'current_assets' in df_prep.columns and 'current_liabilities' in df_prep.columns:
+            df_prep['current_ratio'] = df_prep['current_assets'] / df_prep['current_liabilities'].replace(0, np.nan)
+        
+        # Retained earnings ratio
+        if 'retained_earnings_ratio' not in df_prep.columns:
+            if 'retained_earnings_ratio' in df_prep.columns:
+                pass  # Already exists
+            elif 'retained_earnings' in df_prep.columns and 'total_assets' in df_prep.columns:
+                df_prep['retained_earnings_ratio'] = df_prep['retained_earnings'] / df_prep['total_assets'].replace(0, np.nan)
+            else:
+                # Default value for missing retained earnings
+                df_prep['retained_earnings_ratio'] = 0.1
+        
+        # Revenue growth calculation
+        if 'revenue_growth' not in df_prep.columns and 'total_revenue' in df_prep.columns:
+            if len(df_prep['symbol'].unique()) > 1 and 'date' in df_prep.columns:
+                # Calculate growth over time per symbol
+                df_prep = df_prep.sort_values(['symbol', 'date'])
+                df_prep['revenue_growth'] = df_prep.groupby('symbol')['total_revenue'].pct_change() * 100
+            else:
+                # Single period - assume modest growth
+                df_prep['revenue_growth'] = 5.0
+        
+        # Market-based fields
+        if 'equity_value' not in df_prep.columns:
+            if 'equity' in df_prep.columns:
+                df_prep['equity_value'] = df_prep['equity']
+            elif 'total_assets' in df_prep.columns and 'total_liabilities' in df_prep.columns:
+                df_prep['equity_value'] = df_prep['total_assets'] - df_prep['total_liabilities']
+        
+        if 'debt_value' not in df_prep.columns:
+            if 'total_debt' in df_prep.columns:
+                df_prep['debt_value'] = df_prep['total_debt']
+            else:
+                df_prep['debt_value'] = df_prep.get('total_liabilities', 0)
+        
+        # Fill missing values with reasonable defaults
+        defaults = {
+            'roa': 0.0,
+            'leverage': 0.3,
+            'current_ratio': 1.2,
+            'revenue_growth': 3.0,
+            'retained_earnings_ratio': 0.1,
+            'equity_value': 1000000,
+            'debt_value': 300000
+        }
+        
+        for field, default_value in defaults.items():
+            if field in df_prep.columns:
+                df_prep[field] = df_prep[field].fillna(default_value)
+            else:
+                df_prep[field] = default_value
+        
+        logger.info(f"Database field preparation completed. Available features: {[col for col in df_prep.columns if col in defaults.keys()]}")
+        
+        return df_prep
     
     def get_feature_categories(self) -> Dict[str, List[str]]:
         """

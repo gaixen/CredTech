@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { credTechAPI } from "../services/credtech-api";
 
 const NewsPage = () => {
   const [news, setNews] = useState([]);
@@ -7,143 +8,20 @@ const NewsPage = () => {
   const [error, setError] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("general");
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [trendingSymbols, setTrendingSymbols] = useState([]);
   const { currentUser } = useAuth();
-
-  // Mock news data for demonstration (in production, this would come from an API)
-  // To connect real news APIs, uncomment and configure one of these:
-  // 1. NewsAPI: https://newsapi.org/
-  // 2. Alpha Vantage News: https://www.alphavantage.co/
-  // 3. Financial Modeling Prep: https://financialmodelingprep.com/
-  // 4. Your backend API: /api/news
-  const mockNews = {
-    general: [
-      {
-        id: 1,
-        headline:
-          "Federal Reserve Signals Potential Rate Changes Amid Economic Uncertainty",
-        summary:
-          "The Federal Reserve indicated possible monetary policy adjustments as inflation concerns persist.",
-        source: "Reuters",
-        timestamp: "2 hours ago",
-        category: "Monetary Policy",
-        severity: "high",
-        url: "#",
-      },
-      {
-        id: 2,
-        headline:
-          "Major Banks Report Strong Q3 Earnings Despite Credit Concerns",
-        summary:
-          "Leading financial institutions show resilience with solid quarterly results.",
-        source: "Bloomberg",
-        timestamp: "4 hours ago",
-        category: "Banking",
-        severity: "medium",
-        url: "#",
-      },
-      {
-        id: 3,
-        headline: "Corporate Bond Spreads Widen as Market Volatility Increases",
-        summary:
-          "Credit risk premiums rise across sectors amid economic uncertainty.",
-        source: "Financial Times",
-        timestamp: "6 hours ago",
-        category: "Credit Markets",
-        severity: "high",
-        url: "#",
-      },
-      {
-        id: 4,
-        headline: "Tech Sector Credit Ratings Under Review by Major Agencies",
-        summary:
-          "Technology companies face scrutiny as growth prospects moderate.",
-        source: "Wall Street Journal",
-        timestamp: "8 hours ago",
-        category: "Tech",
-        severity: "medium",
-        url: "#",
-      },
-      {
-        id: 5,
-        headline:
-          "Energy Sector Sees Credit Improvement on Commodity Price Stability",
-        summary:
-          "Oil and gas companies benefit from stable energy prices and improved cash flows.",
-        source: "S&P Global",
-        timestamp: "12 hours ago",
-        category: "Energy",
-        severity: "low",
-        url: "#",
-      },
-    ],
-    credit: [
-      {
-        id: 6,
-        headline: "Credit Default Swap Spreads Surge for Retail Companies",
-        summary:
-          "Consumer discretionary sector faces increased default risk pricing.",
-        source: "Credit Week",
-        timestamp: "1 hour ago",
-        category: "CDS",
-        severity: "high",
-        url: "#",
-      },
-      {
-        id: 7,
-        headline: "High-Yield Bond Issuance Drops 30% Quarter-over-Quarter",
-        summary:
-          "Companies delay debt refinancing amid higher borrowing costs.",
-        source: "Bond Buyer",
-        timestamp: "3 hours ago",
-        category: "High Yield",
-        severity: "medium",
-        url: "#",
-      },
-      {
-        id: 8,
-        headline: "Investment Grade Corporate Bonds See Record Inflows",
-        summary:
-          "Institutional investors flock to safer corporate debt instruments.",
-        source: "Moody's",
-        timestamp: "5 hours ago",
-        category: "Investment Grade",
-        severity: "low",
-        url: "#",
-      },
-    ],
-    markets: [
-      {
-        id: 9,
-        headline: "Stock Market Volatility Reaches Highest Level Since 2020",
-        summary:
-          "VIX index spikes as investors react to mixed economic signals.",
-        source: "CNBC",
-        timestamp: "30 minutes ago",
-        category: "Volatility",
-        severity: "high",
-        url: "#",
-      },
-      {
-        id: 10,
-        headline: "Dollar Strengthens Against Major Currencies",
-        summary: "USD gains momentum on relative economic resilience.",
-        source: "MarketWatch",
-        timestamp: "2 hours ago",
-        category: "Forex",
-        severity: "medium",
-        url: "#",
-      },
-    ],
-  };
 
   const categories = [
     { key: "general", label: "General Finance", icon: "📰" },
-    { key: "credit", label: "Credit Markets", icon: "📊" },
-    { key: "markets", label: "Market News", icon: "📈" },
+    { key: "Banking", label: "Banking", icon: "🏦" },
+    { key: "Credit Markets", label: "Credit Markets", icon: "📊" },
+    { key: "Monetary Policy", label: "Monetary Policy", icon: "🏛️" },
   ];
 
   useEffect(() => {
     fetchNews();
+    fetchTrendingSymbols();
   }, [selectedCategory]);
 
   const fetchNews = async () => {
@@ -151,16 +29,53 @@ const NewsPage = () => {
     setError("");
 
     try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      let data;
 
-      // In production, this would be an actual API call
-      // const response = await fetch(`/api/news?category=${selectedCategory}`);
-      // const data = await response.json();
+      if (selectedCategory === "general") {
+        // Get latest news for general category
+        const response = await credTechAPI.getLatestNews({ limit: 20 });
+        data = response;
+      } else {
+        // Get news by specific category
+        const response = await credTechAPI.getNewsByCategory(
+          selectedCategory,
+          20
+        );
+        data = response;
+      }
 
-      setNews(mockNews[selectedCategory] || []);
+      setNews(data.articles || []);
     } catch (err) {
+      console.error("Error fetching news:", err);
       setError("Failed to fetch news. Please try again.");
+      // Set empty array on error instead of keeping old data
+      setNews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTrendingSymbols = async () => {
+    try {
+      const response = await credTechAPI.getTrendingSymbols();
+      setTrendingSymbols(response.trending_symbols || []);
+    } catch (err) {
+      console.error("Error fetching trending symbols:", err);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await credTechAPI.searchNews(searchQuery, 20);
+      setNews(response.articles || []);
+    } catch (err) {
+      console.error("Error searching news:", err);
+      setError("Search failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -399,6 +314,90 @@ const NewsPage = () => {
         ))}
       </div>
 
+      {/* Search Section */}
+      <div
+        style={{
+          display: "flex",
+          gap: "1rem",
+          alignItems: "center",
+          marginBottom: "2rem",
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            gap: "0.5rem",
+            flex: "1",
+            minWidth: "300px",
+          }}
+        >
+          <input
+            type="text"
+            placeholder="Search news articles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+            style={{
+              flex: "1",
+              padding: "0.75rem",
+              borderRadius: "8px",
+              border: "1px solid var(--border-color)",
+              backgroundColor: "var(--secondary-color)",
+              color: "var(--text-color)",
+              fontSize: "1rem",
+            }}
+          />
+          <button
+            onClick={handleSearch}
+            disabled={!searchQuery.trim()}
+            style={{
+              padding: "0.75rem 1.5rem",
+              borderRadius: "8px",
+              border: "none",
+              backgroundColor: "var(--primary-color)",
+              color: "white",
+              fontSize: "1rem",
+              cursor: searchQuery.trim() ? "pointer" : "not-allowed",
+              opacity: searchQuery.trim() ? 1 : 0.6,
+            }}
+          >
+            🔍 Search
+          </button>
+        </div>
+
+        {/* Trending Symbols */}
+        {trendingSymbols.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <span style={{ color: "var(--text-color)", opacity: 0.8 }}>
+              Trending:
+            </span>
+            {trendingSymbols.slice(0, 5).map((item, index) => (
+              <span
+                key={index}
+                style={{
+                  padding: "0.25rem 0.5rem",
+                  backgroundColor: "var(--primary-color)",
+                  color: "white",
+                  borderRadius: "12px",
+                  fontSize: "0.8rem",
+                  fontWeight: "500",
+                }}
+              >
+                {item.symbol} ({item.mentions})
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
       {loading && (
         <div style={loadingStyle}>
           <div style={spinnerStyle}></div>
@@ -410,35 +409,89 @@ const NewsPage = () => {
 
       {!loading && !error && (
         <div style={newsGridStyle}>
-          {news.map((article) => (
+          {news.length === 0 ? (
             <div
-              key={article.id}
-              style={newsCardStyle}
-              onClick={() => window.open(article.url, "_blank")}
-              onMouseEnter={(e) => {
-                e.target.style.transform = "translateY(-2px)";
-                e.target.style.boxShadow = "0 8px 25px rgba(0, 0, 0, 0.3)";
-                e.target.style.borderColor = "var(--primary-color)";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = "translateY(0)";
-                e.target.style.boxShadow = "none";
-                e.target.style.borderColor = "var(--border-color)";
+              style={{
+                textAlign: "center",
+                padding: "3rem",
+                color: "var(--text-color)",
+                opacity: 0.7,
               }}
             >
-              <div style={newsHeaderStyle}>
-                <h3 style={headlineStyle}>{article.headline}</h3>
-                <div style={metaInfoStyle}>
-                  <span style={categoryTagStyle(article.severity)}>
-                    {article.category}
-                  </span>
-                  <span style={timestampStyle}>{article.timestamp}</span>
+              No news articles found for the selected category.
+            </div>
+          ) : (
+            news.map((article) => (
+              <div
+                key={article.id}
+                style={newsCardStyle}
+                onClick={() =>
+                  article.url !== "#" && window.open(article.url, "_blank")
+                }
+                onMouseEnter={(e) => {
+                  e.target.style.transform = "translateY(-2px)";
+                  e.target.style.boxShadow = "0 8px 25px rgba(0, 0, 0, 0.3)";
+                  e.target.style.borderColor = "var(--primary-color)";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = "translateY(0)";
+                  e.target.style.boxShadow = "none";
+                  e.target.style.borderColor = "var(--border-color)";
+                }}
+              >
+                <div style={newsHeaderStyle}>
+                  <h3 style={headlineStyle}>{article.headline}</h3>
+                  <div style={metaInfoStyle}>
+                    <span style={categoryTagStyle(article.severity || "low")}>
+                      {article.category || "General"}
+                    </span>
+                    <span style={timestampStyle}>{article.timestamp}</span>
+                  </div>
+                </div>
+                <p style={summaryStyle}>
+                  {article.summary ||
+                    (article.content
+                      ? article.content.substring(0, 200) + "..."
+                      : "No summary available")}
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginTop: "1rem",
+                  }}
+                >
+                  <div style={sourceStyle}>Source: {article.source}</div>
+                  {article.symbols && article.symbols.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "0.25rem",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {article.symbols.slice(0, 3).map((symbol, idx) => (
+                        <span
+                          key={idx}
+                          style={{
+                            padding: "0.1rem 0.4rem",
+                            backgroundColor: "var(--primary-color)",
+                            color: "white",
+                            borderRadius: "8px",
+                            fontSize: "0.7rem",
+                            fontWeight: "500",
+                          }}
+                        >
+                          {symbol}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-              <p style={summaryStyle}>{article.summary}</p>
-              <div style={sourceStyle}>Source: {article.source}</div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
 

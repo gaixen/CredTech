@@ -38,6 +38,9 @@ const Header = () => {
         <Link href="/news" style={{ color: "var(--text-color)" }}>
           News
         </Link>
+        <Link href="/sentiment" style={{ color: "var(--text-color)" }}>
+          sentiment
+        </Link>
         <Link href="/watchlists" style={{ color: "var(--text-color)" }}>
           Watchlists
         </Link>
