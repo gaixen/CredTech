@@ -1,6 +1,6 @@
 # CredTech Structured Data API
 
-A comprehensive credit risk modeling system for Credit Default Swap (CDS) spread prediction, implementing academic methodologies for financial data analysis and machine learning. You can check the deployment [here](https://secret-qk3b1fv3g-gaixens-projects.vercel.app/)
+A comprehensive credit risk modeling system for Credit Default Swap (CDS) spread prediction, implementing academic methodologies for financial data analysis and machine learning. The video explaination can be found [here](https://drive.google.com/drive/u/0/folders/1G7iyELQzDd5FKrhLhFqBhmqQiC6NZmqN). The deployment can be found [here](https://secret-qk3b1fv3g-gaixens-projects.vercel.app/)
 
 ## ![Landing Page](assets/login.png)
 
@@ -151,6 +151,8 @@ This project implements a comprehensive credit risk modeling system following ac
 ### 2. Feature Engineering (`feature_engineering/`)
 
 **Purpose**: Transform raw financial data into academic research-grade features
+
+- The features can be seen through the `data` directory.
 
 **Accounting Features**:
 
